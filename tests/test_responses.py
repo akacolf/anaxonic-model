@@ -73,6 +73,14 @@ class ResponsesTest(unittest.TestCase):
         self.assertIsNotNone(match)
         self.assertEqual(match.response, "Yes. I am good and ready to help.")
 
+    def test_response_memory_can_match_generic_low_quality_answer(self):
+        memory = ResponseMemory([("Explain simply.", "I will use a short and simple answer.")])
+
+        match = memory.lookup("explain photosynthesis simply")
+
+        self.assertIsNotNone(match)
+        self.assertTrue(response_is_low_quality(match.response))
+
     def test_builtin_response_answers_common_identity_gaps(self):
         self.assertEqual(
             built_in_response("whats your age"),
@@ -99,6 +107,30 @@ class ResponsesTest(unittest.TestCase):
             "I am doing well and ready to help.",
         )
         self.assertEqual(
+            built_in_response("alright"),
+            "Alright. What would you like to work on?",
+        )
+        self.assertEqual(
+            built_in_response("i need some data"),
+            "Tell me what topic or format you need, and I will help shape the data.",
+        )
+        self.assertEqual(
+            built_in_response("what is training loss"),
+            "Training loss measures how well the model predicts examples it is learning from.",
+        )
+        self.assertEqual(
+            built_in_response("how many tokens are we at"),
+            "I cannot see the live token count from this chat prompt.",
+        )
+        self.assertEqual(
+            built_in_response("who created you"),
+            "I was built in the local Anaxonic model project.",
+        )
+        self.assertEqual(
+            built_in_response("can you tell me whats the motor's speed"),
+            "I need the motor specs or sensor data before I can calculate its speed.",
+        )
+        self.assertEqual(
             built_in_response("fuck dis shit"),
             "That response missed. Ask again and I will try a clearer reply.",
         )
@@ -120,8 +152,16 @@ class ResponsesTest(unittest.TestCase):
             )
         )
         self.assertTrue(response_is_low_quality("The ale an and ang and ang anerere."))
+        self.assertTrue(
+            response_is_low_quality(
+                "I ang therele ang aninge wing thelllelere thererereler ang there angeles."
+            )
+        )
+        self.assertTrue(response_is_low_quality("I will use a short and simple answer."))
+        self.assertTrue(response_is_low_quality("The sentime in the state in the producints."))
         self.assertTrue(response_is_low_quality(""))
         self.assertFalse(response_is_low_quality("I am running and ready to help."))
+        self.assertFalse(response_is_low_quality("Plants use sunlight to make food."))
 
 
 if __name__ == "__main__":

@@ -5,6 +5,16 @@ from collections import Counter
 
 
 WORD_RE = re.compile(r"[a-zA-Z0-9']+")
+SUSPECT_FRAGMENTS = (
+    "ang",
+    "arer",
+    "cher",
+    "eler",
+    "erer",
+    "lere",
+    "thel",
+    "wing",
+)
 
 
 def repeated_character_run(text: str) -> int:
@@ -42,6 +52,11 @@ def max_repeated_ngram_count(text: str, n: int = 3) -> int:
     return max(ngrams.values(), default=0)
 
 
+def repeated_fragment_count(text: str) -> int:
+    lowered = text.casefold()
+    return sum(lowered.count(fragment) for fragment in SUSPECT_FRAGMENTS)
+
+
 def unique_word_fraction(text: str) -> float:
     tokens = word_tokens(text)
     if not tokens:
@@ -58,6 +73,8 @@ def quality_failures(text: str) -> list[str]:
         return failures
     if repeated_character_run(stripped) >= 5:
         failures.append("repeated character run")
+    if repeated_fragment_count(stripped) >= 6:
+        failures.append("repeated generated fragments")
     if len(tokens) >= 8 and unique_word_fraction(stripped) < 0.45:
         failures.append("low unique word fraction")
     if len(tokens) >= 12 and repeated_word_fraction(stripped) > 0.45:

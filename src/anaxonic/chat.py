@@ -7,7 +7,13 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-DEFAULT_CHECKPOINT = "runs/hf_chat_quick/best.pt"
+DEFAULT_CHECKPOINTS = (
+    "runs/hf_chat_frontier_balanced/best.pt",
+    "runs/frontier_chat_cpu_more/best.pt",
+    "runs/hf_chat/best.pt",
+    "runs/hf_chat_quick/best.pt",
+)
+DEFAULT_CHECKPOINT = DEFAULT_CHECKPOINTS[0]
 DEFAULT_MEMORY_DATA = "data/frontier_chat.jsonl"
 DEFAULT_LEARN_DATA = "data/self_learning.jsonl"
 DEFAULT_SYSTEM = (
@@ -42,6 +48,15 @@ def build_chat_context(turns: list[tuple[str, str]], system: str | None = None) 
     return "".join(parts)
 
 
+def resolve_checkpoint(path: str) -> str:
+    if path != DEFAULT_CHECKPOINT:
+        return path
+    for candidate in DEFAULT_CHECKPOINTS:
+        if Path(candidate).exists():
+            return candidate
+    return path
+
+
 class ChatSession:
     def __init__(
         self,
@@ -54,7 +69,7 @@ class ChatSession:
         repetition_penalty: float = 1.08,
         memory_data: str | None = DEFAULT_MEMORY_DATA,
         learn_data: str | None = DEFAULT_LEARN_DATA,
-        generate_unknown: bool = True,
+        generate_unknown: bool = False,
     ):
         torch = require_torch()
         from anaxonic.checkpoint import load_checkpoint, load_model_state
@@ -70,7 +85,8 @@ class ChatSession:
         self.memory = ResponseMemory.from_jsonl_files(memory_paths) if memory_paths else None
         self.learn_data = Path(learn_data) if learn_data else None
         self.device = choose_device()
-        payload = load_checkpoint(checkpoint_path, self.device)
+        self.checkpoint_path = resolve_checkpoint(checkpoint_path)
+        payload = load_checkpoint(self.checkpoint_path, self.device)
         model_config = ModelConfig(**payload["config"]["model"])
         self.model = AnaxonicModel(model_config).to(self.device)
         load_model_state(self.model, payload["model"])
@@ -123,7 +139,7 @@ class ChatSession:
 
         if self.memory is not None:
             match = self.memory.lookup(prompt)
-            if match is not None:
+            if match is not None and not response_is_low_quality(match.response):
                 self.turns.append(("assistant", match.response))
                 self.last_user_prompt = prompt
                 self.last_response = match.response
@@ -171,12 +187,18 @@ def main() -> None:
     parser.add_argument("--no-memory", action="store_true")
     parser.add_argument("--no-learn-log", action="store_true")
     parser.add_argument(
+        "--generate-unknown",
+        action="store_true",
+        dest="generate_unknown",
+        help="Allow the model to sample an answer when memory has no confident match.",
+    )
+    parser.add_argument(
         "--memory-only",
         action="store_false",
         dest="generate_unknown",
         help="Only answer prompts found in the memory data.",
     )
-    parser.set_defaults(generate_unknown=True)
+    parser.set_defaults(generate_unknown=False)
     args = parser.parse_args()
 
     session = ChatSession(

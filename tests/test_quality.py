@@ -1,6 +1,11 @@
 import unittest
 
-from anaxonic.quality import quality_failures, repeated_character_run, unique_word_fraction
+from anaxonic.quality import (
+    quality_failures,
+    repeated_character_run,
+    repeated_fragment_count,
+    unique_word_fraction,
+)
 
 
 class QualityTest(unittest.TestCase):
@@ -13,6 +18,12 @@ class QualityTest(unittest.TestCase):
         )
 
         self.assertIn("repeated word sequence", failures)
+
+    def test_quality_failures_catch_generated_fragments(self):
+        text = "I ang therele ang aninge wing thelllelere thererereler ang there angeles."
+
+        self.assertGreaterEqual(repeated_fragment_count(text), 6)
+        self.assertIn("repeated generated fragments", quality_failures(text))
 
     def test_quality_allows_short_normal_text(self):
         self.assertEqual(quality_failures("I am ready to help."), [])

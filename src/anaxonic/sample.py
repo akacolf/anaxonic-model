@@ -58,7 +58,7 @@ def sample(
             return built_in
         if memory_data:
             match = ResponseMemory.from_jsonl(memory_data).lookup(prompt)
-            if match is not None:
+            if match is not None and not response_is_low_quality(match.response):
                 return match.response
             if not generate_unknown:
                 return LOW_CONFIDENCE_RESPONSE

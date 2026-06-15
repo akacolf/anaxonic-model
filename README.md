@@ -52,6 +52,36 @@ python -m anaxonic.train --config configs/hf_chat.json --data data/hf_chat.jsonl
 python -m anaxonic.sample --checkpoint runs/hf_chat/best.pt --chat --prompt "Explain training data simply."
 ```
 
+For the stronger local chat run, convert a larger capped UltraChat slice, blend it
+with the local Anaxonic examples, and train the balanced frontier config:
+
+```bash
+python -m anaxonic.prepare_hf \
+  --dataset HuggingFaceH4/ultrachat_200k \
+  --split train_sft \
+  --output data/hf_ultrachat_12000.jsonl \
+  --format chat \
+  --streaming \
+  --max-examples 12000 \
+  --min-chars 20 \
+  --max-chars 1800
+
+python -m anaxonic.build_chat_data \
+  --input data/basic_responses.jsonl \
+  --input data/frontier_seed_chat.jsonl \
+  --input data/frontier_chat.jsonl \
+  --input data/hf_chat.jsonl \
+  --input data/hf_ultrachat_12000.jsonl \
+  --output data/hf_chat_frontier_long.jsonl \
+  --min-response-chars 2 \
+  --max-response-chars 1000
+
+PYTHONUNBUFFERED=1 python -m anaxonic.train \
+  --config configs/hf_chat_frontier_balanced.json \
+  --data data/hf_chat_frontier_long.jsonl \
+  --format chat
+```
+
 `prepare_hf` handles common chat and instruction-tuning shapes:
 
 - `messages` records with `role`/`content`.
@@ -84,6 +114,10 @@ Or start an interactive chat loop:
 ```bash
 python3 chat.py --system "Be brief."
 ```
+
+The chat loop uses retrieval and built-in safety answers before model sampling.
+By default it avoids sampling unknown prompts; pass `--generate-unknown` when you
+want to inspect raw model completions.
 
 The chat loop keeps a small local teaching log at `data/self_learning.jsonl`.
 Use `/teach prompt => response` to add a correction, or `/good` to save the last

@@ -139,6 +139,8 @@ def built_in_response(prompt: str) -> str | None:
     tokens = content_tokens(prompt)
     if tokens <= {"hi", "hello", "hey"} or tokens <= {"what", "is", "up"}:
         return "Hey. How can I help?"
+    if tokens <= {"alright", "allright", "ok"}:
+        return "Alright. What would you like to work on?"
     if tokens <= {"good", "morning"}:
         return "Good morning. How can I help?"
     if {"how", "are", "you"} <= tokens or {"you", "good"} <= tokens:
@@ -147,6 +149,8 @@ def built_in_response(prompt: str) -> str | None:
         return "I know the local Anaxonic project basics and can answer simple questions from my training data."
     if {"what", "can", "you", "do"} <= tokens:
         return "I can answer simple questions, explain project concepts, and keep replies concise."
+    if {"need", "data"} <= tokens:
+        return "Tell me what topic or format you need, and I will help shape the data."
     if {"what", "is", "happening"} <= tokens or {"what", "is", "going", "on"} <= tokens:
         return "I am running normally and ready to help."
     if {"damn", "fuck", "shit"} & tokens or {"holy", "cow"} <= tokens:
@@ -161,8 +165,20 @@ def built_in_response(prompt: str) -> str | None:
         return "I am running normally, but my answers can still be weak while the model is early."
     if {"validation", "loss"} <= tokens:
         return "Validation loss measures how well the model predicts held-out examples it did not train on."
+    if {"training", "loss"} <= tokens or {"train", "loss"} <= tokens:
+        return "Training loss measures how well the model predicts examples it is learning from."
     if {"response", "only", "loss"} <= tokens:
         return "Response-only loss trains on assistant tokens and ignores system and user prompt tokens."
+    if {"how", "many", "tokens"} <= tokens or {"token", "count"} <= tokens:
+        return "I cannot see the live token count from this chat prompt."
+    if {"who", "created", "you"} <= tokens or {"who", "made", "you"} <= tokens:
+        return "I was built in the local Anaxonic model project."
+    if {"your", "name"} <= tokens or {"what", "is", "name"} <= tokens:
+        return "My name is Anaxonic."
+    if ({"motor", "speed"} <= tokens) or ({"motors", "speed"} <= tokens):
+        return "I need the motor specs or sensor data before I can calculate its speed."
+    if {"keep", "it", "well"} <= tokens:
+        return "I will keep replies clear and useful."
     if "unsure" in tokens or {"do", "not", "know"} <= tokens:
         return "I should say I am unsure instead of guessing, then ask for the missing detail."
     if set(normalized.split()) <= {"bruh", "bruhh", "bruhhh", "bro"}:
@@ -306,4 +322,23 @@ def response_is_low_quality(response: str) -> bool:
             return True
     if re.fullmatch(r"(ye|yes?)\s+(an|ans|d|s|t)[\w\s.]*", cleaned.casefold()):
         return True
+    normalized_cleaned = re.sub(r"[^a-z0-9\s]", "", cleaned.casefold())
+    generic_non_answers = {
+        "i will use a short and simple answer",
+        "i will use a short and simple answer.",
+        "i will provide a concise answer",
+        "i will provide a concise answer.",
+        "sure the was a can compare dere",
+        "sure! the was a can compare dere.",
+    }
+    if cleaned.casefold() in generic_non_answers or normalized_cleaned in generic_non_answers:
+        return True
+    if len(words) >= 6:
+        folded = [word.casefold() for word in words]
+        malformed = sum(
+            word.endswith(("ints", "dere", "prosses", "bentes")) or word in {"sentime"}
+            for word in folded
+        )
+        if malformed >= 1 and unique_word_ratio < 0.95:
+            return True
     return False

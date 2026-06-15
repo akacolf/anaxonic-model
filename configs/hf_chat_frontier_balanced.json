@@ -1,0 +1,30 @@
+{
+  "run_name": "hf_chat_frontier_balanced",
+  "seed": 1337,
+  "model": {
+    "vocab_size": 256,
+    "context_length": 256,
+    "n_layers": 2,
+    "n_heads": 4,
+    "d_model": 192,
+    "dropout": 0.1
+  },
+  "train": {
+    "batch_size": 4,
+    "gradient_accumulation_steps": 8,
+    "max_steps": 3000,
+    "learning_rate": 0.00045,
+    "min_learning_rate": 0.00004,
+    "warmup_steps": 120,
+    "weight_decay": 0.1,
+    "grad_clip": 1.0,
+    "eval_interval": 50,
+    "eval_batches": 12,
+    "checkpoint_interval": 250,
+    "out_dir": "runs/hf_chat_frontier_balanced",
+    "validation_split": 0.03,
+    "early_stop_patience": 20,
+    "mixed_precision": true,
+    "compile_model": false
+  }
+}
