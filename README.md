@@ -21,7 +21,7 @@ For basic send/receive response training:
 ```bash
 python -m anaxonic.train --config configs/basic_chat.json --data data/basic_responses.jsonl --format chat
 python -m anaxonic.sample --checkpoint runs/basic_chat/latest.pt --chat --prompt "Hello."
-python -m anaxonic.chat --checkpoint runs/basic_chat/best.pt
+python3 chat.py
 ```
 
 ## Talk To It
@@ -43,7 +43,7 @@ python -m anaxonic.sample --checkpoint runs/basic_chat/latest.pt --chat --prompt
 Or start an interactive chat loop:
 
 ```bash
-python -m anaxonic.chat --checkpoint runs/basic_chat/best.pt --system "Be brief."
+python3 chat.py --system "Be brief."
 ```
 
 Try a few more:

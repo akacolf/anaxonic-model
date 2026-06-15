@@ -1,15 +1,29 @@
 from __future__ import annotations
 
 import argparse
+import sys
+from pathlib import Path
 
-import torch
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-from anaxonic.checkpoint import load_checkpoint
-from anaxonic.config import ModelConfig
-from anaxonic.model import AnaxonicModel
-from anaxonic.sample import trim_chat_response
-from anaxonic.tokenizer import ByteTokenizer
-from anaxonic.train import choose_device
+DEFAULT_CHECKPOINT = "runs/basic_chat/best.pt"
+
+
+def require_torch():
+    try:
+        import torch
+    except ModuleNotFoundError as error:
+        if error.name != "torch":
+            raise
+        raise SystemExit(
+            "Missing dependency: torch\n\n"
+            "Use the project virtualenv:\n"
+            "  .venv/bin/python -m anaxonic.chat\n\n"
+            "Or install the project first:\n"
+            '  python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"'
+        ) from error
+    return torch
 
 
 def build_chat_context(turns: list[tuple[str, str]], system: str | None = None) -> str:
@@ -31,6 +45,13 @@ class ChatSession:
         temperature: float,
         top_k: int | None,
     ):
+        torch = require_torch()
+        from anaxonic.checkpoint import load_checkpoint
+        from anaxonic.config import ModelConfig
+        from anaxonic.model import AnaxonicModel
+        from anaxonic.tokenizer import ByteTokenizer
+        from anaxonic.train import choose_device
+
         self.device = choose_device()
         payload = load_checkpoint(checkpoint_path, self.device)
         model_config = ModelConfig(**payload["config"]["model"])
@@ -43,18 +64,23 @@ class ChatSession:
         self.temperature = temperature
         self.top_k = top_k
         self.turns: list[tuple[str, str]] = []
+        self.torch = torch
 
-    @torch.no_grad()
     def ask(self, prompt: str) -> str:
+        from anaxonic.sample import trim_chat_response
+
         self.turns.append(("user", prompt))
         context = build_chat_context(self.turns, self.system)
-        input_ids = torch.tensor([self.tokenizer.encode(context)], dtype=torch.long, device=self.device)
-        output_ids = self.model.generate(
-            input_ids,
-            self.max_new_tokens,
-            temperature=self.temperature,
-            top_k=self.top_k,
+        input_ids = self.torch.tensor(
+            [self.tokenizer.encode(context)], dtype=self.torch.long, device=self.device
         )
+        with self.torch.no_grad():
+            output_ids = self.model.generate(
+                input_ids,
+                self.max_new_tokens,
+                temperature=self.temperature,
+                top_k=self.top_k,
+            )
         output = self.tokenizer.decode(output_ids[0].tolist())
         response = trim_chat_response(output[len(context) :])
         self.turns.append(("assistant", response))
@@ -63,7 +89,7 @@ class ChatSession:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Talk to an Anaxonic chat checkpoint.")
-    parser.add_argument("--checkpoint", required=True)
+    parser.add_argument("--checkpoint", default=DEFAULT_CHECKPOINT)
     parser.add_argument("--system")
     parser.add_argument("--max-new-tokens", type=int, default=120)
     parser.add_argument("--temperature", type=float, default=0.3)
