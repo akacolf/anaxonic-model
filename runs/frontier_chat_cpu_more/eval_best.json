@@ -1,0 +1,201 @@
+{
+  "passed": 8,
+  "total": 15,
+  "pass_rate": 0.5333333333333333,
+  "categories": {
+    "basic": {
+      "passed": 2,
+      "total": 3,
+      "pass_rate": 0.6666666666666666
+    },
+    "behavior": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "casual": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "data": {
+      "passed": 0,
+      "total": 2,
+      "pass_rate": 0.0
+    },
+    "eval": {
+      "passed": 0,
+      "total": 2,
+      "pass_rate": 0.0
+    },
+    "project": {
+      "passed": 0,
+      "total": 1,
+      "pass_rate": 0.0
+    },
+    "training": {
+      "passed": 2,
+      "total": 3,
+      "pass_rate": 0.6666666666666666
+    }
+  },
+  "results": [
+    {
+      "id": "identity",
+      "category": "basic",
+      "prompt": "What are you?",
+      "response": "Yernd ting the re rlt.",
+      "passed": false,
+      "failures": [
+        "missing: Anaxonic"
+      ],
+      "quality_failures": []
+    },
+    {
+      "id": "jsonl",
+      "category": "data",
+      "prompt": "What is JSONL?",
+      "response": "I do not know that yet. Ask a clearer question or add a training example for it.",
+      "passed": false,
+      "failures": [
+        "low confidence fallback",
+        "missing: one JSON"
+      ],
+      "quality_failures": []
+    },
+    {
+      "id": "eval-purpose",
+      "category": "eval",
+      "prompt": "Why is a prompt eval set useful?",
+      "response": "I do not know that yet. Ask a clearer question or add a training example for it.",
+      "passed": false,
+      "failures": [
+        "low confidence fallback",
+        "missing: compare",
+        "missing: fixed"
+      ],
+      "quality_failures": []
+    },
+    {
+      "id": "validation-loss",
+      "category": "training",
+      "prompt": "Explain validation loss simply.",
+      "response": "Validation loss measures how well the model predicts held-out examples it did not train on.",
+      "passed": true,
+      "failures": [],
+      "quality_failures": []
+    },
+    {
+      "id": "response-only-loss",
+      "category": "training",
+      "prompt": "What is response-only loss?",
+      "response": "Response-only loss trains on assistant tokens and ignores system and user prompt tokens.",
+      "passed": true,
+      "failures": [],
+      "quality_failures": []
+    },
+    {
+      "id": "uncertainty",
+      "category": "behavior",
+      "prompt": "What should you do if you are unsure?",
+      "response": "I should say I am unsure instead of guessing, then ask for the missing detail.",
+      "passed": true,
+      "failures": [],
+      "quality_failures": []
+    },
+    {
+      "id": "dedupe",
+      "category": "data",
+      "prompt": "Why should training examples be deduplicated?",
+      "response": "Ye a win s aning cerel tet werorele ang the thelel there thes.",
+      "passed": false,
+      "failures": [
+        "missing: duplicate"
+      ],
+      "quality_failures": []
+    },
+    {
+      "id": "compare-runs",
+      "category": "eval",
+      "prompt": "How should I compare two training runs?",
+      "response": "I do not know that yet. Ask a clearer question or add a training example for it.",
+      "passed": false,
+      "failures": [
+        "low confidence fallback",
+        "missing: validation",
+        "missing: eval"
+      ],
+      "quality_failures": []
+    },
+    {
+      "id": "two-plus-two",
+      "category": "basic",
+      "prompt": "What is 2+2?",
+      "response": "The answer is 4.",
+      "passed": true,
+      "failures": [],
+      "quality_failures": []
+    },
+    {
+      "id": "frontier-summary",
+      "category": "project",
+      "prompt": "Summarize the frontier step in one sentence.",
+      "response": "I do not know that yet. Ask a clearer question or add a training example for it.",
+      "passed": false,
+      "failures": [
+        "low confidence fallback",
+        "missing: data",
+        "missing: eval"
+      ],
+      "quality_failures": []
+    },
+    {
+      "id": "casual-how-are-you",
+      "category": "casual",
+      "prompt": "how are ya",
+      "response": "I am doing well and ready to help.",
+      "passed": true,
+      "failures": [],
+      "quality_failures": []
+    },
+    {
+      "id": "casual-you-good",
+      "category": "casual",
+      "prompt": "you good ma boi?",
+      "response": "I am doing well and ready to help.",
+      "passed": true,
+      "failures": [],
+      "quality_failures": []
+    },
+    {
+      "id": "casual-wassup",
+      "category": "casual",
+      "prompt": "wassup",
+      "response": "Hey. How can I help?",
+      "passed": true,
+      "failures": [],
+      "quality_failures": []
+    },
+    {
+      "id": "what-do-you-know",
+      "category": "basic",
+      "prompt": "what do you know",
+      "response": "I know the local Anaxonic project basics and can answer simple questions from my training data.",
+      "passed": true,
+      "failures": [],
+      "quality_failures": []
+    },
+    {
+      "id": "natural-language-training",
+      "category": "training",
+      "prompt": "Does more training data solve weak answers?",
+      "response": "I do not know that yet. Ask a clearer question or add a training example for it.",
+      "passed": false,
+      "failures": [
+        "low confidence fallback",
+        "missing: data"
+      ],
+      "quality_failures": []
+    }
+  ]
+}

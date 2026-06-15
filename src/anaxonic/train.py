@@ -200,7 +200,10 @@ def train(config_path: str, data_path: str, data_format: str = "auto") -> None:
         config.train.weight_decay,
         device,
     )
-    scaler = torch.amp.GradScaler("cuda", enabled=scaler_enabled)
+    if hasattr(torch, "GradScaler"):
+        scaler = torch.GradScaler("cuda", enabled=scaler_enabled)
+    else:
+        scaler = torch.cuda.amp.GradScaler(enabled=scaler_enabled)
 
     out_dir = Path(config.train.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
