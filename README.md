@@ -146,7 +146,8 @@ PYTHONPATH=src python3 -m anaxonic.eval_chat \
 
 Use the same eval file for every run. Treat a run as more convincing when
 validation loss, prompt eval pass rate, and fixed-prompt samples improve
-together.
+together. The eval summary also reports per-category pass rates, so you can
+spot whether a checkpoint improved broad behavior or only one easy slice.
 
 ## Ticketing
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import random
 from pathlib import Path
 from typing import Protocol
@@ -43,6 +44,21 @@ def create_dataset(
     if data_format == "text":
         return TextDataset(data_path, tokenizer, context_length)
     raise ValueError(f"unknown data format: {data_format}")
+
+
+def create_optimizer(
+    model: torch.nn.Module,
+    learning_rate: float,
+    weight_decay: float,
+    device: torch.device,
+) -> torch.optim.Optimizer:
+    kwargs = {
+        "lr": learning_rate,
+        "weight_decay": weight_decay,
+    }
+    if device.type == "cuda" and "fused" in inspect.signature(torch.optim.AdamW).parameters:
+        kwargs["fused"] = True
+    return torch.optim.AdamW(model.parameters(), **kwargs)
 
 
 @torch.no_grad()
@@ -88,10 +104,11 @@ def train(config_path: str, data_path: str, data_format: str = "auto") -> None:
     model = AnaxonicModel(config.model).to(device)
     if config.train.compile_model:
         model = torch.compile(model)
-    optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=config.train.learning_rate,
-        weight_decay=config.train.weight_decay,
+    optimizer = create_optimizer(
+        model,
+        config.train.learning_rate,
+        config.train.weight_decay,
+        device,
     )
     scaler = torch.cuda.amp.GradScaler(enabled=autocast_enabled)
 

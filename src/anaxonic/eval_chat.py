@@ -60,30 +60,49 @@ def evaluate_cases(
 ) -> dict[str, Any]:
     results = []
     passed = 0
+    categories: dict[str, dict[str, int]] = {}
     for case in cases:
         response = responder(case)
         ok, failures = score_response(response, case)
         passed += int(ok)
+        category = case.get("category", "general")
+        category_score = categories.setdefault(category, {"passed": 0, "total": 0})
+        category_score["passed"] += int(ok)
+        category_score["total"] += 1
         results.append(
             {
                 "id": case.get("id", case["prompt"]),
-                "category": case.get("category", "general"),
+                "category": category,
                 "prompt": case["prompt"],
                 "response": response,
                 "passed": ok,
                 "failures": failures,
             }
         )
+    category_summary = {
+        category: {
+            "passed": score["passed"],
+            "total": score["total"],
+            "pass_rate": score["passed"] / score["total"],
+        }
+        for category, score in sorted(categories.items())
+    }
     return {
         "passed": passed,
         "total": len(cases),
         "pass_rate": passed / len(cases),
+        "categories": category_summary,
         "results": results,
     }
 
 
 def print_summary(report: Mapping[str, Any]) -> None:
     print(f"pass_rate={report['pass_rate']:.3f} passed={report['passed']}/{report['total']}")
+    for category, score in report.get("categories", {}).items():
+        print(
+            f"category={category} pass_rate={score['pass_rate']:.3f} "
+            f"passed={score['passed']}/{score['total']}"
+        )
     for result in report["results"]:
         status = "PASS" if result["passed"] else "FAIL"
         print(f"{status} {result['id']}: {result['response']}")

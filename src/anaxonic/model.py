@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import math
-
 import torch
 from torch import Tensor, nn
 from torch.nn import functional as F
@@ -17,8 +15,7 @@ class CausalSelfAttention(nn.Module):
         self.qkv = nn.Linear(config.d_model, 3 * config.d_model)
         self.proj = nn.Linear(config.d_model, config.d_model)
         self.dropout = nn.Dropout(config.dropout)
-        mask = torch.tril(torch.ones(config.context_length, config.context_length))
-        self.register_buffer("causal_mask", mask.view(1, 1, config.context_length, config.context_length))
+        self.dropout_p = config.dropout
 
     def forward(self, x: Tensor) -> Tensor:
         batch, seq_len, d_model = x.shape
@@ -28,10 +25,13 @@ class CausalSelfAttention(nn.Module):
         k = k.view(batch, seq_len, self.n_heads, self.d_head).transpose(1, 2)
         v = v.view(batch, seq_len, self.n_heads, self.d_head).transpose(1, 2)
 
-        scores = (q @ k.transpose(-2, -1)) / math.sqrt(self.d_head)
-        scores = scores.masked_fill(self.causal_mask[:, :, :seq_len, :seq_len] == 0, float("-inf"))
-        weights = self.dropout(F.softmax(scores, dim=-1))
-        out = weights @ v
+        out = F.scaled_dot_product_attention(
+            q,
+            k,
+            v,
+            dropout_p=self.dropout_p if self.training else 0.0,
+            is_causal=True,
+        )
         out = out.transpose(1, 2).contiguous().view(batch, seq_len, d_model)
         return self.proj(out)
 

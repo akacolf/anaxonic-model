@@ -32,6 +32,37 @@ class EvalChatTest(unittest.TestCase):
         self.assertEqual(report["passed"], 1)
         self.assertEqual(report["total"], 1)
         self.assertEqual(report["pass_rate"], 1.0)
+        self.assertEqual(report["categories"]["general"]["pass_rate"], 1.0)
+
+    def test_evaluate_cases_summarizes_categories(self):
+        report = evaluate_cases(
+            [
+                {
+                    "id": "easy-pass",
+                    "category": "easy",
+                    "prompt": "Say ready.",
+                    "expected_contains": ["ready"],
+                },
+                {
+                    "id": "easy-fail",
+                    "category": "easy",
+                    "prompt": "Say done.",
+                    "expected_contains": ["done"],
+                },
+                {
+                    "id": "hard-pass",
+                    "category": "hard",
+                    "prompt": "Say calibrated.",
+                    "expected_contains": ["calibrated"],
+                },
+            ],
+            lambda case: "ready calibrated",
+        )
+
+        self.assertEqual(report["categories"]["easy"]["passed"], 1)
+        self.assertEqual(report["categories"]["easy"]["total"], 2)
+        self.assertEqual(report["categories"]["easy"]["pass_rate"], 0.5)
+        self.assertEqual(report["categories"]["hard"]["pass_rate"], 1.0)
 
 
 if __name__ == "__main__":
