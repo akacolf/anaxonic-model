@@ -95,7 +95,11 @@ class AnaxonicModel(nn.Module):
         logits = self.lm_head(self.norm(x))
         loss = None
         if targets is not None:
-            loss = F.cross_entropy(logits.view(batch * seq_len, -1), targets.view(batch * seq_len))
+            loss = F.cross_entropy(
+                logits.view(batch * seq_len, -1),
+                targets.view(batch * seq_len),
+                ignore_index=-100,
+            )
         return logits, loss
 
     @torch.no_grad()
@@ -117,4 +121,3 @@ class AnaxonicModel(nn.Module):
             next_id = torch.multinomial(probs, num_samples=1)
             idx = torch.cat((idx, next_id), dim=1)
         return idx
-

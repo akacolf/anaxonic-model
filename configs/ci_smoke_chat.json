@@ -1,0 +1,26 @@
+{
+  "run_name": "ci_smoke_chat",
+  "seed": 1337,
+  "model": {
+    "vocab_size": 256,
+    "context_length": 96,
+    "n_layers": 1,
+    "n_heads": 2,
+    "d_model": 64,
+    "dropout": 0.0
+  },
+  "train": {
+    "batch_size": 2,
+    "gradient_accumulation_steps": 1,
+    "max_steps": 2,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0,
+    "grad_clip": 1.0,
+    "eval_interval": 1,
+    "eval_batches": 1,
+    "checkpoint_interval": 2,
+    "out_dir": "runs/ci_smoke_chat",
+    "mixed_precision": false,
+    "compile_model": false
+  }
+}

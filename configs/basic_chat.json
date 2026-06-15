@@ -1,0 +1,26 @@
+{
+  "run_name": "basic_chat",
+  "seed": 1337,
+  "model": {
+    "vocab_size": 256,
+    "context_length": 128,
+    "n_layers": 2,
+    "n_heads": 4,
+    "d_model": 128,
+    "dropout": 0.1
+  },
+  "train": {
+    "batch_size": 4,
+    "gradient_accumulation_steps": 2,
+    "max_steps": 100,
+    "learning_rate": 0.0003,
+    "weight_decay": 0.1,
+    "grad_clip": 1.0,
+    "eval_interval": 25,
+    "eval_batches": 5,
+    "checkpoint_interval": 50,
+    "out_dir": "runs/basic_chat",
+    "mixed_precision": true,
+    "compile_model": false
+  }
+}

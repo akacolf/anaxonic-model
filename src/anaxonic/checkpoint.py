@@ -19,8 +19,9 @@ def save_checkpoint(
 ) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
+    checkpoint_model = getattr(model, "_orig_mod", model)
     payload = {
-        "model": model.state_dict(),
+        "model": checkpoint_model.state_dict(),
         "optimizer": optimizer.state_dict(),
         "config": config_to_dict(config),
         "step": step,
@@ -31,4 +32,3 @@ def save_checkpoint(
 
 def load_checkpoint(path: str | Path, device: torch.device) -> dict[str, Any]:
     return torch.load(Path(path), map_location=device)
-

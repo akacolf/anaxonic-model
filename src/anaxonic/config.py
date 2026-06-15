@@ -25,6 +25,7 @@ class ModelConfig:
 @dataclass(frozen=True)
 class TrainConfig:
     batch_size: int = 16
+    gradient_accumulation_steps: int = 1
     max_steps: int = 1000
     learning_rate: float = 3e-4
     weight_decay: float = 0.1
@@ -33,6 +34,8 @@ class TrainConfig:
     eval_batches: int = 20
     checkpoint_interval: int = 250
     out_dir: str = "runs/tiny"
+    mixed_precision: bool = True
+    compile_model: bool = False
 
 
 @dataclass(frozen=True)
@@ -60,4 +63,3 @@ def config_to_dict(config: ExperimentConfig) -> dict[str, Any]:
         "model": config.model.__dict__,
         "train": config.train.__dict__,
     }
-

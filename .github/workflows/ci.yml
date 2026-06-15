@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "codex/**"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    name: Test model pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install package
+        run: python -m pip install -e ".[dev]"
+
+      - name: Lint
+        run: python -m ruff check .
+
+      - name: Unit tests
+        run: python -m pytest
+
+      - name: Smoke train chat model
+        run: >
+          python -m anaxonic.train
+          --config configs/ci_smoke_chat.json
+          --data data/basic_responses.jsonl
+          --format chat
+
+      - name: Smoke sample chat model
+        run: >
+          python -m anaxonic.sample
+          --checkpoint runs/ci_smoke_chat/latest.pt
+          --chat
+          --prompt "Reply with yes."
+          --max-new-tokens 8
+          --temperature 0.7
+          --top-k 20
