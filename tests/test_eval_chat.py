@@ -23,6 +23,15 @@ class EvalChatTest(unittest.TestCase):
         self.assertFalse(ok)
         self.assertEqual(failures, ["missing: unsure"])
 
+    def test_score_response_rejects_degenerate_repetition(self):
+        ok, failures = score_response(
+            "ang ang ang the fond ang ang ang the fond ang ang ang the fond",
+            {},
+        )
+
+        self.assertFalse(ok)
+        self.assertIn("repeated word sequence", failures)
+
     def test_evaluate_cases_returns_pass_rate(self):
         report = evaluate_cases(
             [{"id": "a", "prompt": "What is 2+2?", "expected_contains": ["4"]}],

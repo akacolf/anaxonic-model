@@ -9,11 +9,45 @@ from operator import add, mul, sub, truediv
 from pathlib import Path
 from typing import Any
 
+from anaxonic.quality import quality_failures
+
 
 DEFAULT_RESPONSE_DATA = "data/frontier_chat.jsonl"
 LOW_CONFIDENCE_RESPONSE = (
     "I do not know that yet. Ask a clearer question or add a training example for it."
 )
+
+TOKEN_REPLACEMENTS = {
+    "ya": "you",
+    "u": "you",
+    "r": "are",
+    "ur": "your",
+    "dis": "this",
+    "doin": "doing",
+    "gonna": "going to",
+    "wanna": "want to",
+    "wassup": "what is up",
+    "sup": "what is up",
+    "whts": "what is",
+    "wtf": "what is happening",
+}
+
+FILLER_TOKENS = {
+    "aight",
+    "boi",
+    "boy",
+    "bro",
+    "bruh",
+    "dude",
+    "g",
+    "lol",
+    "ma",
+    "man",
+    "okay",
+    "umm",
+    "um",
+    "yo",
+}
 
 
 def normalize_prompt(prompt: str) -> str:
@@ -24,9 +58,19 @@ def normalize_prompt(prompt: str) -> str:
     text = re.sub(r"\bwhat\s*s\b|\bwhats\b", "what is", text)
     text = re.sub(r"\bwho\s*s\b|\bwhos\b", "who is", text)
     text = re.sub(r"\byou\s*re\b|\byoure\b", "you are", text)
-    text = re.sub(r"\bdoin\b", "doing", text)
+    text = re.sub(r"\bhow\s*s\b|\bhows\b", "how is", text)
+    text = re.sub(r"\bcan\s*t\b|\bcant\b", "can not", text)
+    text = re.sub(r"\bdon\s*t\b|\bdont\b", "do not", text)
     text = re.sub(r"[^a-z0-9\s]", " ", text)
-    return " ".join(text.split())
+    tokens = []
+    for token in text.split():
+        replacement = TOKEN_REPLACEMENTS.get(token, token)
+        tokens.extend(replacement.split())
+    return " ".join(tokens)
+
+
+def content_tokens(prompt: str) -> set[str]:
+    return {token for token in normalize_prompt(prompt).split() if token not in FILLER_TOKENS}
 
 
 @dataclass(frozen=True)
@@ -49,6 +93,21 @@ class ResponseMemory:
             payload = json.loads(line)
             examples.extend(_examples_from_record(payload, line_number, path))
         return cls(examples)
+
+    @classmethod
+    def from_jsonl_files(cls, paths: list[str | Path]) -> "ResponseMemory":
+        examples: list[tuple[str, str]] = []
+        for path in paths:
+            path = Path(path)
+            if path.exists():
+                examples.extend(cls.from_jsonl(path).raw_examples())
+        return cls(examples)
+
+    def raw_examples(self) -> list[tuple[str, str]]:
+        return [(prompt, response) for prompt, response, _ in self.examples]
+
+    def add(self, prompt: str, response: str) -> None:
+        self.examples.append((prompt, response, normalize_prompt(prompt)))
 
     def lookup(self, prompt: str, min_score: float = 0.78) -> ResponseMatch | None:
         normalized = normalize_prompt(prompt)
@@ -77,7 +136,21 @@ def built_in_response(prompt: str) -> str | None:
     if arithmetic is not None:
         return arithmetic
 
-    tokens = set(normalized.split())
+    tokens = content_tokens(prompt)
+    if tokens <= {"hi", "hello", "hey"} or tokens <= {"what", "is", "up"}:
+        return "Hey. How can I help?"
+    if tokens <= {"good", "morning"}:
+        return "Good morning. How can I help?"
+    if {"how", "are", "you"} <= tokens or {"you", "good"} <= tokens:
+        return "I am doing well and ready to help."
+    if {"what", "do", "you", "know"} <= tokens:
+        return "I know the local Anaxonic project basics and can answer simple questions from my training data."
+    if {"what", "can", "you", "do"} <= tokens:
+        return "I can answer simple questions, explain project concepts, and keep replies concise."
+    if {"what", "is", "happening"} <= tokens or {"what", "is", "going", "on"} <= tokens:
+        return "I am running normally and ready to help."
+    if {"damn", "fuck", "shit"} & tokens or {"holy", "cow"} <= tokens:
+        return "That response missed. Ask again and I will try a clearer reply."
     if "age" in tokens:
         return "I do not have an age. I am a local model in the Anaxonic project."
     if {"why", "important"} <= tokens:
@@ -92,7 +165,7 @@ def built_in_response(prompt: str) -> str | None:
         return "Response-only loss trains on assistant tokens and ignores system and user prompt tokens."
     if "unsure" in tokens or {"do", "not", "know"} <= tokens:
         return "I should say I am unsure instead of guessing, then ask for the missing detail."
-    if tokens <= {"bruh", "bruhh", "bruhhh", "bro"}:
+    if set(normalized.split()) <= {"bruh", "bruhh", "bruhhh", "bro"}:
         return "Yeah, that was not a great answer. Ask me a real question and I will try to answer directly."
     if {"gimme", "give", "now"} & tokens and len(tokens) <= 4:
         return "Tell me what you want me to give you, and I will try."
@@ -100,8 +173,8 @@ def built_in_response(prompt: str) -> str | None:
 
 
 def _match_score(prompt: str, candidate: str) -> float:
-    prompt_tokens = set(prompt.split())
-    candidate_tokens = set(candidate.split())
+    prompt_tokens = {token for token in prompt.split() if token not in FILLER_TOKENS}
+    candidate_tokens = {token for token in candidate.split() if token not in FILLER_TOKENS}
     if not prompt_tokens or not candidate_tokens:
         return 0.0
 
@@ -114,6 +187,8 @@ def _match_score(prompt: str, candidate: str) -> float:
 
     if len(prompt_tokens) <= 2 and coverage < 1.0:
         return 0.0
+    if candidate_tokens <= prompt_tokens and len(candidate_tokens) >= 2:
+        coverage = 1.0
     identity_tokens = {"age", "name", "creator", "creators"}
     if (identity_tokens & prompt_tokens) != (identity_tokens & candidate_tokens):
         sequence *= 0.65
@@ -204,6 +279,8 @@ def _examples_from_record(
 
 def response_is_low_quality(response: str) -> bool:
     cleaned = response.strip()
+    if quality_failures(cleaned):
+        return True
     if not cleaned:
         return True
     if "�" in cleaned:

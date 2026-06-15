@@ -14,6 +14,8 @@ class ResponsesTest(unittest.TestCase):
     def test_normalize_prompt_ignores_case_and_punctuation(self):
         self.assertEqual(normalize_prompt("Hello?!"), "hello")
         self.assertEqual(normalize_prompt("  What's   happening? "), "what is happening")
+        self.assertEqual(normalize_prompt("How are ya doin?"), "how are you doing")
+        self.assertEqual(normalize_prompt("wassup"), "what is up")
 
     def test_response_memory_loads_prompt_response_records(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -24,6 +26,19 @@ class ResponsesTest(unittest.TestCase):
 
         self.assertIsNotNone(match)
         self.assertEqual(match.response, "Hi there.")
+
+    def test_response_memory_loads_multiple_existing_files(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            first = Path(tmpdir) / "first.jsonl"
+            second = Path(tmpdir) / "second.jsonl"
+            missing = Path(tmpdir) / "missing.jsonl"
+            first.write_text('{"prompt":"Hi","response":"Hello."}\n', encoding="utf-8")
+            second.write_text('{"prompt":"Bye","response":"Goodbye."}\n', encoding="utf-8")
+
+            memory = ResponseMemory.from_jsonl_files([first, missing, second])
+
+        self.assertEqual(memory.lookup("hi").response, "Hello.")
+        self.assertEqual(memory.lookup("bye").response, "Goodbye.")
 
     def test_response_memory_loads_messages_records(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -50,6 +65,14 @@ class ResponsesTest(unittest.TestCase):
 
         self.assertIsNone(memory.lookup("whats your age"))
 
+    def test_response_memory_tolerates_casual_filler(self):
+        memory = ResponseMemory([("You good?", "Yes. I am good and ready to help.")])
+
+        match = memory.lookup("you good ma boi?")
+
+        self.assertIsNotNone(match)
+        self.assertEqual(match.response, "Yes. I am good and ready to help.")
+
     def test_builtin_response_answers_common_identity_gaps(self):
         self.assertEqual(
             built_in_response("whats your age"),
@@ -64,6 +87,25 @@ class ResponsesTest(unittest.TestCase):
             "Yeah, that was not a great answer. Ask me a real question and I will try to answer directly.",
         )
         self.assertIn("unsure", built_in_response("What should you do if you are unsure?"))
+        self.assertEqual(
+            built_in_response("what do you know"),
+            (
+                "I know the local Anaxonic project basics and can answer simple questions "
+                "from my training data."
+            ),
+        )
+        self.assertEqual(
+            built_in_response("you good ma boi?"),
+            "I am doing well and ready to help.",
+        )
+        self.assertEqual(
+            built_in_response("fuck dis shit"),
+            "That response missed. Ask again and I will try a clearer reply.",
+        )
+        self.assertEqual(
+            built_in_response("holy cow"),
+            "That response missed. Ask again and I will try a clearer reply.",
+        )
 
     def test_builtin_response_answers_basic_arithmetic(self):
         self.assertEqual(built_in_response("what is 2+2"), "The answer is 4.")

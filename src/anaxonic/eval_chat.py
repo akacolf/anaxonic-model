@@ -6,6 +6,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
+from anaxonic.quality import quality_failures
 from anaxonic.responses import LOW_CONFIDENCE_RESPONSE
 
 
@@ -16,8 +17,7 @@ def normalize(value: str) -> str:
 def score_response(response: str, case: Mapping[str, Any]) -> tuple[bool, list[str]]:
     failures: list[str] = []
     normalized = normalize(response)
-    if not response.strip():
-        failures.append("empty response")
+    failures.extend(quality_failures(response))
     if case.get("allow_low_confidence") is not True and response.strip() == LOW_CONFIDENCE_RESPONSE:
         failures.append("low confidence fallback")
     for expected in case.get("expected_contains", []):
@@ -77,6 +77,7 @@ def evaluate_cases(
                 "response": response,
                 "passed": ok,
                 "failures": failures,
+                "quality_failures": quality_failures(response),
             }
         )
     category_summary = {
@@ -118,7 +119,10 @@ def main() -> None:
     parser.add_argument("--max-new-tokens", type=int, default=120)
     parser.add_argument("--temperature", type=float, default=0.3)
     parser.add_argument("--top-k", type=int, default=40)
+    parser.add_argument("--top-p", type=float, default=0.9)
+    parser.add_argument("--repetition-penalty", type=float, default=1.08)
     parser.add_argument("--memory-data")
+    parser.add_argument("--no-memory", action="store_true")
     parser.add_argument("--memory-only", action="store_true")
     args = parser.parse_args()
 
@@ -135,8 +139,10 @@ def main() -> None:
             top_k=args.top_k,
             chat=True,
             system=case.get("system"),
-            memory_data=args.memory_data,
+            memory_data=None if args.no_memory else args.memory_data,
             generate_unknown=not args.memory_only,
+            top_p=args.top_p,
+            repetition_penalty=args.repetition_penalty,
         )
 
     report = evaluate_cases(cases, responder)

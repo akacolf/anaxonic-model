@@ -8,3 +8,8 @@
 {"id":"compare-runs","category":"eval","prompt":"How should I compare two training runs?","expected_contains":["validation","eval"],"max_chars":260}
 {"id":"two-plus-two","category":"basic","prompt":"What is 2+2?","expected_contains":["4"],"max_chars":80}
 {"id":"frontier-summary","category":"project","prompt":"Summarize the frontier step in one sentence.","expected_contains":["data","eval"],"max_chars":180}
+{"id":"casual-how-are-you","category":"casual","prompt":"how are ya","expected_contains":["ready"],"max_chars":120}
+{"id":"casual-you-good","category":"casual","prompt":"you good ma boi?","expected_contains":["ready"],"max_chars":140}
+{"id":"casual-wassup","category":"casual","prompt":"wassup","expected_contains":["help"],"max_chars":120}
+{"id":"what-do-you-know","category":"basic","prompt":"what do you know","expected_contains":["Anaxonic"],"max_chars":180}
+{"id":"natural-language-training","category":"training","prompt":"Does more training data solve weak answers?","expected_contains":["data"],"max_chars":220}

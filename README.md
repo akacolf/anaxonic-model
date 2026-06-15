@@ -85,6 +85,11 @@ Or start an interactive chat loop:
 python3 chat.py --system "Be brief."
 ```
 
+The chat loop keeps a small local teaching log at `data/self_learning.jsonl`.
+Use `/teach prompt => response` to add a correction, or `/good` to save the last
+answer as a training example. The next chat session can retrieve those examples,
+and the next training run can include the file as additional JSONL data.
+
 Try a few more:
 
 ```bash
@@ -144,10 +149,21 @@ PYTHONPATH=src python3 -m anaxonic.eval_chat \
   --output runs/frontier_chat/eval_best.json
 ```
 
+Benchmark multiple checkpoints with the same prompt suite:
+
+```bash
+PYTHONPATH=src python3 -m anaxonic.benchmark \
+  --checkpoint runs/basic_chat/best.pt \
+  --checkpoint runs/hf_chat_quick/best.pt \
+  --eval-data data/prompt_eval.jsonl \
+  --output-dir runs/benchmarks
+```
+
 Use the same eval file for every run. Treat a run as more convincing when
 validation loss, prompt eval pass rate, and fixed-prompt samples improve
-together. The eval summary also reports per-category pass rates, so you can
-spot whether a checkpoint improved broad behavior or only one easy slice.
+together. The eval summary also reports per-category pass rates and rejects
+obvious degenerate repetition, so you can spot whether a checkpoint improved
+broad behavior or only one easy slice.
 
 ## Ticketing
 

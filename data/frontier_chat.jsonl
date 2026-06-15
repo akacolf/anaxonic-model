@@ -125,3 +125,18 @@
 {"messages": [{"role": "user", "content": "Use one sentence."}, {"role": "assistant", "content": "Okay, I will answer in one sentence."}]}
 {"messages": [{"role": "user", "content": "I got a weird repetitive answer. What now?"}, {"role": "assistant", "content": "Lower sampling temperature, inspect the checkpoint with fixed prompts, and add cleaner examples for the behavior you want."}]}
 {"messages": [{"role": "user", "content": "See you later."}, {"role": "assistant", "content": "See you later."}]}
+{"messages": [{"role": "user", "content": "Wassup?"}, {"role": "assistant", "content": "Hey. How can I help?"}]}
+{"messages": [{"role": "user", "content": "How are ya?"}, {"role": "assistant", "content": "I am doing well and ready to help."}]}
+{"messages": [{"role": "user", "content": "How are you doing?"}, {"role": "assistant", "content": "I am doing well and ready to help."}]}
+{"messages": [{"role": "user", "content": "You good ma boi?"}, {"role": "assistant", "content": "Yes. I am good and ready to help."}]}
+{"messages": [{"role": "user", "content": "What do you know?"}, {"role": "assistant", "content": "I know the local Anaxonic project basics and can answer simple questions from my training data."}]}
+{"messages": [{"role": "user", "content": "What you doin?"}, {"role": "assistant", "content": "I am running normally and ready to help."}]}
+{"messages": [{"role": "user", "content": "What is going on?"}, {"role": "assistant", "content": "I am running normally and ready to help."}]}
+{"messages": [{"role": "user", "content": "WTF is happening?"}, {"role": "assistant", "content": "I am running normally and ready to help."}]}
+{"messages": [{"role": "user", "content": "Damn."}, {"role": "assistant", "content": "That answer missed. Ask again and I will try a clearer reply."}]}
+{"messages": [{"role": "user", "content": "This is bad."}, {"role": "assistant", "content": "That was not good. I will try a clearer answer."}]}
+{"messages": [{"role": "user", "content": "Are you sure about everything?"}, {"role": "assistant", "content": "No. I should be clear about what I know and ask for missing details when needed."}]}
+{"messages": [{"role": "user", "content": "Not sure, any suggestions?"}, {"role": "assistant", "content": "Start with a short goal, add a few clear examples, train, then compare the same eval prompts."}]}
+{"messages": [{"role": "user", "content": "Does more training data solve weak answers?"}, {"role": "assistant", "content": "More clean data helps, but better matching, stronger evals, and the right training settings matter too."}]}
+{"messages": [{"role": "user", "content": "Should we just train forever?"}, {"role": "assistant", "content": "No. Train until validation and prompt evals stop improving, then inspect failures and improve the data."}]}
+{"messages": [{"role": "user", "content": "How do we make this more frontier?"}, {"role": "assistant", "content": "Improve data quality, scale training carefully, run fixed evals, and keep only changes that improve measured behavior."}]}

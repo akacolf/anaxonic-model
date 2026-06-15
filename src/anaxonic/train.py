@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import inspect
+import math
 import random
 from pathlib import Path
 from typing import Protocol
@@ -61,6 +62,24 @@ def create_optimizer(
     return torch.optim.AdamW(model.parameters(), **kwargs)
 
 
+def learning_rate_for_step(
+    step: int,
+    max_steps: int,
+    learning_rate: float,
+    min_learning_rate: float,
+    warmup_steps: int,
+) -> float:
+    if warmup_steps > 0 and step <= warmup_steps:
+        return learning_rate * step / warmup_steps
+    if step >= max_steps:
+        return min_learning_rate
+    decay_start = min(warmup_steps, max_steps)
+    decay_steps = max(1, max_steps - decay_start)
+    progress = min(1.0, max(0.0, (step - decay_start) / decay_steps))
+    cosine = 0.5 * (1.0 + math.cos(math.pi * progress))
+    return min_learning_rate + cosine * (learning_rate - min_learning_rate)
+
+
 @torch.no_grad()
 def estimate_metrics(
     model: AnaxonicModel,
@@ -117,6 +136,15 @@ def train(config_path: str, data_path: str, data_format: str = "auto") -> None:
     model.train()
     best_eval_loss = float("inf")
     for step in range(1, config.train.max_steps + 1):
+        step_lr = learning_rate_for_step(
+            step,
+            config.train.max_steps,
+            config.train.learning_rate,
+            config.train.min_learning_rate,
+            config.train.warmup_steps,
+        )
+        for group in optimizer.param_groups:
+            group["lr"] = step_lr
         optimizer.zero_grad(set_to_none=True)
         total_loss = 0.0
         for _ in range(config.train.gradient_accumulation_steps):
@@ -146,7 +174,8 @@ def train(config_path: str, data_path: str, data_format: str = "auto") -> None:
             split_name = "val" if validation_dataset else "eval"
             print(
                 f"step={step} train_loss={train_loss:.4f} "
-                f"{split_name}_loss={eval_loss:.4f} {split_name}_accuracy={eval_accuracy:.3f}"
+                f"{split_name}_loss={eval_loss:.4f} {split_name}_accuracy={eval_accuracy:.3f} "
+                f"lr={step_lr:.2e}"
             )
             if eval_loss < best_eval_loss:
                 best_eval_loss = eval_loss

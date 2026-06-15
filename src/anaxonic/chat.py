@@ -9,6 +9,7 @@ if __package__ in {None, ""}:
 
 DEFAULT_CHECKPOINT = "runs/hf_chat_quick/best.pt"
 DEFAULT_MEMORY_DATA = "data/frontier_chat.jsonl"
+DEFAULT_LEARN_DATA = "data/self_learning.jsonl"
 DEFAULT_SYSTEM = (
     "You are Anaxonic, a concise local assistant. Answer directly, be accurate, "
     "and say when the available information is not enough instead of guessing."
@@ -52,6 +53,7 @@ class ChatSession:
         top_p: float | None = 0.9,
         repetition_penalty: float = 1.08,
         memory_data: str | None = DEFAULT_MEMORY_DATA,
+        learn_data: str | None = DEFAULT_LEARN_DATA,
         generate_unknown: bool = True,
     ):
         torch = require_torch()
@@ -62,7 +64,11 @@ class ChatSession:
         from anaxonic.tokenizer import ByteTokenizer
         from anaxonic.train import choose_device
 
-        self.memory = ResponseMemory.from_jsonl(memory_data) if memory_data else None
+        memory_paths = [memory_data] if memory_data else []
+        if learn_data:
+            memory_paths.append(learn_data)
+        self.memory = ResponseMemory.from_jsonl_files(memory_paths) if memory_paths else None
+        self.learn_data = Path(learn_data) if learn_data else None
         self.device = choose_device()
         payload = load_checkpoint(checkpoint_path, self.device)
         model_config = ModelConfig(**payload["config"]["model"])
@@ -78,7 +84,26 @@ class ChatSession:
         self.repetition_penalty = repetition_penalty
         self.generate_unknown = generate_unknown
         self.turns: list[tuple[str, str]] = []
+        self.last_user_prompt: str | None = None
+        self.last_response: str | None = None
         self.torch = torch
+
+    def teach(self, prompt: str, response: str) -> None:
+        if self.learn_data is None:
+            raise ValueError("learning log is disabled")
+        import json
+
+        self.learn_data.parent.mkdir(parents=True, exist_ok=True)
+        record = {
+            "messages": [
+                {"role": "user", "content": prompt},
+                {"role": "assistant", "content": response},
+            ]
+        }
+        with self.learn_data.open("a", encoding="utf-8") as file:
+            file.write(json.dumps(record, ensure_ascii=False) + "\n")
+        if self.memory is not None:
+            self.memory.add(prompt, response)
 
     def ask(self, prompt: str) -> str:
         from anaxonic.sample import trim_chat_response
@@ -92,15 +117,21 @@ class ChatSession:
         built_in = built_in_response(prompt)
         if built_in is not None:
             self.turns.append(("assistant", built_in))
+            self.last_user_prompt = prompt
+            self.last_response = built_in
             return built_in
 
         if self.memory is not None:
             match = self.memory.lookup(prompt)
             if match is not None:
                 self.turns.append(("assistant", match.response))
+                self.last_user_prompt = prompt
+                self.last_response = match.response
                 return match.response
             if not self.generate_unknown:
                 self.turns.append(("assistant", LOW_CONFIDENCE_RESPONSE))
+                self.last_user_prompt = prompt
+                self.last_response = LOW_CONFIDENCE_RESPONSE
                 return LOW_CONFIDENCE_RESPONSE
 
         context = build_chat_context(self.turns, self.system)
@@ -121,6 +152,8 @@ class ChatSession:
         if response_is_low_quality(response):
             response = LOW_CONFIDENCE_RESPONSE
         self.turns.append(("assistant", response))
+        self.last_user_prompt = prompt
+        self.last_response = response
         return response
 
 
@@ -134,7 +167,9 @@ def main() -> None:
     parser.add_argument("--top-p", type=float, default=0.9)
     parser.add_argument("--repetition-penalty", type=float, default=1.08)
     parser.add_argument("--memory-data", default=DEFAULT_MEMORY_DATA)
+    parser.add_argument("--learn-data", default=DEFAULT_LEARN_DATA)
     parser.add_argument("--no-memory", action="store_true")
+    parser.add_argument("--no-learn-log", action="store_true")
     parser.add_argument(
         "--memory-only",
         action="store_false",
@@ -153,6 +188,7 @@ def main() -> None:
         args.top_p,
         args.repetition_penalty,
         None if args.no_memory else args.memory_data,
+        None if args.no_learn_log else args.learn_data,
         args.generate_unknown,
     )
     print("Anaxonic chat. Type /exit to quit.")
@@ -164,6 +200,25 @@ def main() -> None:
             break
         if prompt in {"/exit", "/quit"}:
             break
+        if prompt.startswith("/teach "):
+            lesson = prompt.removeprefix("/teach ").strip()
+            if "=>" not in lesson:
+                print("anaxonic> Use /teach prompt => response")
+                continue
+            teach_prompt, teach_response = [part.strip() for part in lesson.split("=>", 1)]
+            if not teach_prompt or not teach_response:
+                print("anaxonic> Use /teach prompt => response")
+                continue
+            session.teach(teach_prompt, teach_response)
+            print("anaxonic> Learned that example for this session and the next training run.")
+            continue
+        if prompt == "/good":
+            if session.last_user_prompt is None or session.last_response is None:
+                print("anaxonic> No previous answer to save.")
+                continue
+            session.teach(session.last_user_prompt, session.last_response)
+            print("anaxonic> Saved the last answer as a training example.")
+            continue
         if not prompt:
             continue
         print(f"anaxonic> {session.ask(prompt)}")

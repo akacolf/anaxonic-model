@@ -28,6 +28,8 @@ class TrainConfig:
     gradient_accumulation_steps: int = 1
     max_steps: int = 1000
     learning_rate: float = 3e-4
+    min_learning_rate: float = 3e-5
+    warmup_steps: int = 0
     weight_decay: float = 0.1
     grad_clip: float = 1.0
     eval_interval: int = 100

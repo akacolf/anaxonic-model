@@ -12,15 +12,17 @@
   "train": {
     "batch_size": 4,
     "gradient_accumulation_steps": 32,
-    "max_steps": 15000,
+    "max_steps": 25000,
     "learning_rate": 0.0002,
+    "min_learning_rate": 0.00002,
+    "warmup_steps": 500,
     "weight_decay": 0.1,
     "grad_clip": 1.0,
     "eval_interval": 100,
-    "eval_batches": 30,
+    "eval_batches": 40,
     "checkpoint_interval": 500,
     "out_dir": "runs/frontier_chat",
-    "validation_split": 0.03,
+    "validation_split": 0.08,
     "mixed_precision": true,
     "compile_model": false
   }
