@@ -41,6 +41,27 @@ class ConversationDatasetTest(unittest.TestCase):
         self.assertEqual(tuple(y.shape), (2, 64))
         self.assertTrue(torch.any(y != -100))
 
+    def test_conversation_dataset_split_keeps_train_and_validation_examples(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "chat.jsonl"
+            path.write_text(
+                "\n".join(
+                    [
+                        '{"prompt":"One","response":"First"}',
+                        '{"prompt":"Two","response":"Second"}',
+                        '{"prompt":"Three","response":"Third"}',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            dataset = ConversationDataset(path, ByteTokenizer(), context_length=64)
+            train_dataset, validation_dataset = dataset.split(0.34, seed=7)
+
+        self.assertIsNotNone(validation_dataset)
+        self.assertEqual(len(train_dataset.examples), 2)
+        self.assertEqual(len(validation_dataset.examples), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

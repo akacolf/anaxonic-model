@@ -12,7 +12,7 @@
   "train": {
     "batch_size": 4,
     "gradient_accumulation_steps": 2,
-    "max_steps": 100,
+    "max_steps": 250,
     "learning_rate": 0.0003,
     "weight_decay": 0.1,
     "grad_clip": 1.0,
@@ -20,6 +20,7 @@
     "eval_batches": 5,
     "checkpoint_interval": 50,
     "out_dir": "runs/basic_chat",
+    "validation_split": 0.2,
     "mixed_precision": true,
     "compile_model": false
   }

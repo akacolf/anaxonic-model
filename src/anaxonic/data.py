@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import random
 from pathlib import Path
 from typing import Any
 
@@ -11,17 +12,38 @@ from anaxonic.tokenizer import ByteTokenizer
 
 
 class TextDataset:
-    def __init__(self, path: str | Path, tokenizer: ByteTokenizer, context_length: int):
+    def __init__(
+        self,
+        path: str | Path,
+        tokenizer: ByteTokenizer,
+        context_length: int,
+        token_ids: list[int] | None = None,
+    ):
         self.path = Path(path)
         self.tokenizer = tokenizer
         self.context_length = context_length
-        text = self.path.read_text(encoding="utf-8")
-        token_ids = tokenizer.encode(text)
+        if token_ids is None:
+            text = self.path.read_text(encoding="utf-8")
+            token_ids = tokenizer.encode(text)
         if len(token_ids) <= context_length:
             raise ValueError(
                 f"{self.path} has {len(token_ids)} tokens, but needs more than {context_length}"
             )
         self.tokens = torch.tensor(token_ids, dtype=torch.long)
+
+    def split(self, validation_split: float, seed: int) -> tuple["TextDataset", "TextDataset | None"]:
+        if validation_split <= 0:
+            return self, None
+        val_tokens = max(self.context_length + 1, int(len(self.tokens) * validation_split))
+        if val_tokens >= len(self.tokens):
+            raise ValueError("validation_split leaves no text tokens for training")
+        token_ids = self.tokens.tolist()
+        train_ids = token_ids[:-val_tokens]
+        val_ids = token_ids[-val_tokens:]
+        return (
+            TextDataset(self.path, self.tokenizer, self.context_length, train_ids),
+            TextDataset(self.path, self.tokenizer, self.context_length, val_ids),
+        )
 
     def sample_batch(self, batch_size: int, device: torch.device) -> tuple[Tensor, Tensor]:
         max_start = len(self.tokens) - self.context_length - 1
@@ -34,11 +56,17 @@ class TextDataset:
 class ConversationDataset:
     """JSONL instruction dataset with response-only loss targets."""
 
-    def __init__(self, path: str | Path, tokenizer: ByteTokenizer, context_length: int):
+    def __init__(
+        self,
+        path: str | Path,
+        tokenizer: ByteTokenizer,
+        context_length: int,
+        examples: list[tuple[Tensor, Tensor]] | None = None,
+    ):
         self.path = Path(path)
         self.tokenizer = tokenizer
         self.context_length = context_length
-        self.examples = self._load_examples()
+        self.examples = examples if examples is not None else self._load_examples()
         if not self.examples:
             raise ValueError(f"{self.path} did not contain any trainable assistant responses")
 
@@ -101,6 +129,24 @@ class ConversationDataset:
         x = torch.tensor(token_ids[:-1], dtype=torch.long)
         y = torch.tensor(labels[1:], dtype=torch.long)
         return x, y
+
+    def split(
+        self, validation_split: float, seed: int
+    ) -> tuple["ConversationDataset", "ConversationDataset | None"]:
+        if validation_split <= 0:
+            return self, None
+        if len(self.examples) < 2:
+            raise ValueError("validation_split needs at least two conversation examples")
+        indices = list(range(len(self.examples)))
+        random.Random(seed).shuffle(indices)
+        val_count = min(len(indices) - 1, max(1, round(len(indices) * validation_split)))
+        val_indices = set(indices[:val_count])
+        train_examples = [example for i, example in enumerate(self.examples) if i not in val_indices]
+        val_examples = [example for i, example in enumerate(self.examples) if i in val_indices]
+        return (
+            ConversationDataset(self.path, self.tokenizer, self.context_length, train_examples),
+            ConversationDataset(self.path, self.tokenizer, self.context_length, val_examples),
+        )
 
     def sample_batch(self, batch_size: int, device: torch.device) -> tuple[Tensor, Tensor]:
         indices = torch.randint(0, len(self.examples), (batch_size,))

@@ -26,6 +26,9 @@ class BatchDataset(Protocol):
     def sample_batch(self, batch_size: int, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
         ...
 
+    def split(self, validation_split: float, seed: int) -> tuple["BatchDataset", "BatchDataset | None"]:
+        ...
+
 
 def create_dataset(
     data_path: str,
@@ -43,24 +46,32 @@ def create_dataset(
 
 
 @torch.no_grad()
-def estimate_loss(
+def estimate_metrics(
     model: AnaxonicModel,
     dataset: BatchDataset,
     batch_size: int,
     eval_batches: int,
     device: torch.device,
     autocast_enabled: bool,
-) -> float:
+) -> tuple[float, float]:
     model.eval()
     losses = []
+    correct_tokens = 0
+    supervised_tokens = 0
     for _ in range(eval_batches):
         x, y = dataset.sample_batch(batch_size, device)
         with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=autocast_enabled):
-            _, loss = model(x, y)
+            logits, loss = model(x, y)
         if loss is not None:
             losses.append(loss.item())
+        supervised = y != -100
+        if torch.any(supervised):
+            predictions = torch.argmax(logits, dim=-1)
+            correct_tokens += int((predictions[supervised] == y[supervised]).sum().item())
+            supervised_tokens += int(supervised.sum().item())
     model.train()
-    return sum(losses) / max(len(losses), 1)
+    accuracy = correct_tokens / supervised_tokens if supervised_tokens else 0.0
+    return sum(losses) / max(len(losses), 1), accuracy
 
 
 def train(config_path: str, data_path: str, data_format: str = "auto") -> None:
@@ -72,6 +83,8 @@ def train(config_path: str, data_path: str, data_format: str = "auto") -> None:
 
     tokenizer = ByteTokenizer()
     dataset = create_dataset(data_path, tokenizer, config.model.context_length, data_format)
+    train_dataset, validation_dataset = dataset.split(config.train.validation_split, config.seed)
+    eval_dataset = validation_dataset or train_dataset
     model = AnaxonicModel(config.model).to(device)
     if config.train.compile_model:
         model = torch.compile(model)
@@ -85,11 +98,12 @@ def train(config_path: str, data_path: str, data_format: str = "auto") -> None:
     out_dir = Path(config.train.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     model.train()
+    best_eval_loss = float("inf")
     for step in range(1, config.train.max_steps + 1):
         optimizer.zero_grad(set_to_none=True)
         total_loss = 0.0
         for _ in range(config.train.gradient_accumulation_steps):
-            x, y = dataset.sample_batch(config.train.batch_size, device)
+            x, y = train_dataset.sample_batch(config.train.batch_size, device)
             with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=autocast_enabled):
                 _, loss = model(x, y)
             if loss is None:
@@ -104,15 +118,22 @@ def train(config_path: str, data_path: str, data_format: str = "auto") -> None:
         train_loss = total_loss / config.train.gradient_accumulation_steps
 
         if step == 1 or step % config.train.eval_interval == 0:
-            eval_loss = estimate_loss(
+            eval_loss, eval_accuracy = estimate_metrics(
                 model,
-                dataset,
+                eval_dataset,
                 config.train.batch_size,
                 config.train.eval_batches,
                 device,
                 autocast_enabled,
             )
-            print(f"step={step} train_loss={train_loss:.4f} eval_loss={eval_loss:.4f}")
+            split_name = "val" if validation_dataset else "eval"
+            print(
+                f"step={step} train_loss={train_loss:.4f} "
+                f"{split_name}_loss={eval_loss:.4f} {split_name}_accuracy={eval_accuracy:.3f}"
+            )
+            if eval_loss < best_eval_loss:
+                best_eval_loss = eval_loss
+                save_checkpoint(out_dir / "best.pt", model, optimizer, config, step, train_loss)
 
         if step % config.train.checkpoint_interval == 0 or step == config.train.max_steps:
             save_checkpoint(out_dir / "latest.pt", model, optimizer, config, step, train_loss)

@@ -21,6 +21,7 @@ For basic send/receive response training:
 ```bash
 python -m anaxonic.train --config configs/basic_chat.json --data data/basic_responses.jsonl --format chat
 python -m anaxonic.sample --checkpoint runs/basic_chat/latest.pt --chat --prompt "Hello."
+python -m anaxonic.chat --checkpoint runs/basic_chat/best.pt
 ```
 
 ## Talk To It
@@ -37,6 +38,12 @@ Send a prompt:
 
 ```bash
 python -m anaxonic.sample --checkpoint runs/basic_chat/latest.pt --chat --prompt "Reply with yes."
+```
+
+Or start an interactive chat loop:
+
+```bash
+python -m anaxonic.chat --checkpoint runs/basic_chat/best.pt --system "Be brief."
 ```
 
 Try a few more:
@@ -57,6 +64,26 @@ PYTHONPATH=src .venv/bin/python -m anaxonic.sample --checkpoint runs/basic_chat/
 This is still a tiny byte-level model trained on a starter dataset, so expect basic,
 fragile answers until the dataset and model scale up.
 
+## Training Accuracy
+
+`configs/basic_chat.json` trains longer than the smoke config and reserves a small
+validation split. Training logs report `val_loss` and `val_accuracy` when that
+split is enabled, which gives a cleaner signal than measuring only on sampled
+training examples. The trainer writes `best.pt` whenever validation loss improves
+and `latest.pt` at normal checkpoint intervals.
+
+For a faster CI-style check:
+
+```bash
+python -m anaxonic.train --config configs/ci_smoke_chat.json --data data/basic_responses.jsonl --format chat
+```
+
+## Ticketing
+
+Use Linear as the planning source of truth for this repo. Keep issue keys in
+branch names, PRs, and commits so the Linear GitHub integration can automate
+status moves. See `docs/TICKETING.md`.
+
 ## Shape
 
 - `src/anaxonic/model.py` contains a compact GPT-style decoder transformer.
@@ -64,6 +91,7 @@ fragile answers until the dataset and model scale up.
 - `src/anaxonic/data.py` turns plain text or JSONL conversations into autoregressive batches.
 - `src/anaxonic/train.py` trains with gradient accumulation, response masking, and checkpoints.
 - `src/anaxonic/sample.py` generates text or chat-style responses from a checkpoint.
+- `src/anaxonic/chat.py` provides an interactive terminal chat loop.
 - `configs/tiny.json` is the smallest useful local training config.
 - `configs/basic_chat.json` is the starter config for response training.
 - `configs/ci_smoke_chat.json` keeps CI model checks fast.

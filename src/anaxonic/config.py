@@ -34,6 +34,7 @@ class TrainConfig:
     eval_batches: int = 20
     checkpoint_interval: int = 250
     out_dir: str = "runs/tiny"
+    validation_split: float = 0.0
     mixed_precision: bool = True
     compile_model: bool = False
 
