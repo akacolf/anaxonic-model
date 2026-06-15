@@ -82,6 +82,44 @@ PYTHONUNBUFFERED=1 python -m anaxonic.train \
   --format chat
 ```
 
+For the broader course-guided run, add Dolly plus a small distilled AI-course
+supplement, then use the CPU-realistic long balanced config:
+
+```bash
+python -m anaxonic.prepare_hf \
+  --dataset databricks/databricks-dolly-15k \
+  --split train \
+  --output data/hf_dolly_15000.jsonl \
+  --format chat \
+  --max-examples 15000 \
+  --min-chars 20 \
+  --max-chars 1800 \
+  --prompt-field instruction \
+  --response-field response \
+  --input-field context
+
+python -m anaxonic.build_course_data \
+  --output data/course_ai_distilled.jsonl \
+  --repeat 8
+
+python -m anaxonic.build_chat_data \
+  --input data/basic_responses.jsonl \
+  --input data/frontier_seed_chat.jsonl \
+  --input data/frontier_chat.jsonl \
+  --input data/hf_chat.jsonl \
+  --input data/hf_ultrachat_30000.jsonl \
+  --input data/hf_dolly_15000.jsonl \
+  --input data/course_ai_distilled.jsonl \
+  --output data/hf_chat_frontier_course_long.jsonl \
+  --min-response-chars 2 \
+  --max-response-chars 1000
+
+PYTHONUNBUFFERED=1 python -m anaxonic.train \
+  --config configs/hf_chat_frontier_course_balanced.json \
+  --data data/hf_chat_frontier_course_long.jsonl \
+  --format chat
+```
+
 `prepare_hf` handles common chat and instruction-tuning shapes:
 
 - `messages` records with `role`/`content`.

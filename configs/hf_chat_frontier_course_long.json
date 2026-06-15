@@ -1,0 +1,31 @@
+{
+  "run_name": "hf_chat_frontier_course_long",
+  "seed": 1337,
+  "model": {
+    "vocab_size": 256,
+    "context_length": 384,
+    "n_layers": 4,
+    "n_heads": 4,
+    "d_model": 256,
+    "dropout": 0.12
+  },
+  "train": {
+    "batch_size": 6,
+    "gradient_accumulation_steps": 8,
+    "max_steps": 5000,
+    "learning_rate": 0.00028,
+    "min_learning_rate": 0.000025,
+    "warmup_steps": 250,
+    "weight_decay": 0.12,
+    "grad_clip": 1.0,
+    "eval_interval": 100,
+    "eval_batches": 24,
+    "train_eval_batches": 6,
+    "checkpoint_interval": 500,
+    "out_dir": "runs/hf_chat_frontier_course_long",
+    "validation_split": 0.1,
+    "early_stop_patience": 16,
+    "mixed_precision": true,
+    "compile_model": false
+  }
+}

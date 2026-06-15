@@ -103,6 +103,16 @@ class ResponsesTest(unittest.TestCase):
             ),
         )
         self.assertEqual(
+            built_in_response("What are you?"),
+            "I am Anaxonic, a small local assistant model for the Anaxonic project.",
+        )
+        self.assertIn("one JSON object per line", built_in_response("What is JSONL?"))
+        self.assertIn("fixed questions", built_in_response("Why is a prompt eval set useful?"))
+        self.assertIn("duplicate", built_in_response("Why should training examples be deduplicated?"))
+        self.assertIn("validation loss", built_in_response("How should I compare two training runs?"))
+        self.assertIn("data", built_in_response("Summarize the frontier step in one sentence."))
+        self.assertIn("data", built_in_response("Does more training data solve weak answers?"))
+        self.assertEqual(
             built_in_response("you good ma boi?"),
             "I am doing well and ready to help.",
         )

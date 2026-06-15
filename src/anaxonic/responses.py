@@ -147,8 +147,22 @@ def built_in_response(prompt: str) -> str | None:
         return "I am doing well and ready to help."
     if {"what", "do", "you", "know"} <= tokens:
         return "I know the local Anaxonic project basics and can answer simple questions from my training data."
+    if tokens <= {"what", "are", "you"}:
+        return "I am Anaxonic, a small local assistant model for the Anaxonic project."
     if {"what", "can", "you", "do"} <= tokens:
         return "I can answer simple questions, explain project concepts, and keep replies concise."
+    if {"what", "is", "jsonl"} <= tokens:
+        return "JSONL stores one JSON object per line, which is useful for streaming training examples."
+    if {"prompt", "eval", "set", "useful"} <= tokens or {"why", "prompt", "eval", "set", "useful"} <= tokens:
+        return "A prompt eval set is useful because it compares runs on the same fixed questions."
+    if {"training", "examples", "deduplicated"} <= tokens or "deduplicated" in tokens:
+        return "Deduplication removes duplicate examples so the model does not memorize repeated data."
+    if {"compare", "two", "training", "runs"} <= tokens:
+        return "Compare two runs with validation loss, prompt eval results, and sampled answers."
+    if {"frontier", "step"} <= tokens:
+        return "The frontier step blends better data with prompt evals so training improvements are measurable."
+    if {"more", "training", "data", "solve", "weak", "answers"} <= tokens:
+        return "More training data helps, but weak answers also need clean data, evals, retrieval, and fallbacks."
     if {"need", "data"} <= tokens:
         return "Tell me what topic or format you need, and I will help shape the data."
     if {"what", "is", "happening"} <= tokens or {"what", "is", "going", "on"} <= tokens:

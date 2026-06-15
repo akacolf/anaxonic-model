@@ -34,6 +34,7 @@ class TrainConfig:
     grad_clip: float = 1.0
     eval_interval: int = 100
     eval_batches: int = 20
+    train_eval_batches: int = 4
     checkpoint_interval: int = 250
     out_dir: str = "runs/tiny"
     metrics_file: str = "metrics.jsonl"

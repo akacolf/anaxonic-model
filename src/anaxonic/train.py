@@ -282,10 +282,22 @@ def train(config_path: str, data_path: str, data_format: str = "auto") -> None:
                 autocast_enabled,
                 autocast_dtype,
             )
+            train_eval_loss, train_eval_accuracy = estimate_metrics(
+                model,
+                train_dataset,
+                config.train.batch_size,
+                config.train.train_eval_batches,
+                device,
+                autocast_enabled,
+                autocast_dtype,
+            )
             split_name = "val" if validation_dataset else "eval"
+            generalization_gap = eval_loss - train_eval_loss
             print(
                 f"step={step} train_loss={train_loss:.4f} "
+                f"train_eval_loss={train_eval_loss:.4f} "
                 f"{split_name}_loss={eval_loss:.4f} {split_name}_accuracy={eval_accuracy:.3f} "
+                f"gap={generalization_gap:.4f} "
                 f"ppl={math.exp(min(eval_loss, 20)):.2f} lr={step_lr:.2e} "
                 f"grad_norm={grad_norm:.3f} tok/s={tokens_per_second:.0f}"
             )
@@ -295,8 +307,11 @@ def train(config_path: str, data_path: str, data_format: str = "auto") -> None:
                     "event": "eval",
                     "step": step,
                     "train_loss": train_loss,
+                    "train_eval_loss": train_eval_loss,
+                    "train_eval_accuracy": train_eval_accuracy,
                     f"{split_name}_loss": eval_loss,
                     f"{split_name}_accuracy": eval_accuracy,
+                    "generalization_gap": generalization_gap,
                     "learning_rate": step_lr,
                     "grad_norm": grad_norm,
                     "tokens_per_second": tokens_per_second,

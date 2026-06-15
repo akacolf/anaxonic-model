@@ -10,3 +10,4 @@ runs/
 *.pt
 *.pth
 data/hf_*.jsonl
+data/course_*.jsonl

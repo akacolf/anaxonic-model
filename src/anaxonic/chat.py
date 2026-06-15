@@ -8,6 +8,7 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 DEFAULT_CHECKPOINTS = (
+    "runs/hf_chat_frontier_course_balanced/best.pt",
     "runs/hf_chat_frontier_balanced/best.pt",
     "runs/frontier_chat_cpu_more/best.pt",
     "runs/hf_chat/best.pt",
