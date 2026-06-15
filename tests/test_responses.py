@@ -42,6 +42,11 @@ class ResponsesTest(unittest.TestCase):
 
     def test_response_quality_flags_fragmented_generation(self):
         self.assertTrue(response_is_low_quality("Ye ans."))
+        self.assertTrue(
+            response_is_low_quality(
+                "Thes the an ang ting be an the ang and tind the t tiners ang and an"
+            )
+        )
         self.assertTrue(response_is_low_quality(""))
         self.assertFalse(response_is_low_quality("I am running and ready to help."))
 

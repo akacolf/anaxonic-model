@@ -16,28 +16,67 @@ python -m anaxonic.train --config configs/tiny.json --data data/sample.txt
 python -m anaxonic.sample --checkpoint runs/tiny/latest.pt --prompt "Once upon"
 ```
 
-For basic send/receive response training:
+For chat response training:
 
 ```bash
-python -m anaxonic.train --config configs/basic_chat.json --data data/basic_responses.jsonl --format chat
-python -m anaxonic.sample --checkpoint runs/basic_chat/latest.pt --chat --prompt "Hello."
+python -m anaxonic.train --config configs/hf_chat_quick.json --data data/hf_chat.jsonl --format chat
+python -m anaxonic.sample --checkpoint runs/hf_chat_quick/latest.pt --chat --prompt "Hello."
 python3 chat.py
 ```
 
+## Train With Hugging Face Data
+
+Install the optional dataset tools:
+
+```bash
+pip install -e ".[data,dev]"
+```
+
+Convert a Hugging Face dataset split into Anaxonic's JSONL chat format:
+
+```bash
+python -m anaxonic.prepare_hf \
+  --dataset yahma/alpaca-cleaned \
+  --split train \
+  --output data/hf_chat.jsonl \
+  --format chat \
+  --max-examples 10000 \
+  --min-chars 20 \
+  --max-chars 2000
+```
+
+Then train:
+
+```bash
+python -m anaxonic.train --config configs/hf_chat.json --data data/hf_chat.jsonl --format chat
+python -m anaxonic.sample --checkpoint runs/hf_chat/best.pt --chat --prompt "Explain training data simply."
+```
+
+`prepare_hf` handles common chat and instruction-tuning shapes:
+
+- `messages` records with `role`/`content`.
+- ShareGPT-style `conversations` records with `from`/`value`.
+- Prompt pairs such as `prompt`/`response`, `instruction`/`output`, and `question`/`answer`.
+- Plain text corpora with `--format text --text-field text`.
+
+Start with a capped, high-quality slice before using huge datasets. Keep examples
+close to the behavior you want, compare validation loss across runs, and sample
+chat outputs after each checkpoint.
+
 ## Talk To It
 
-Train the starter chat checkpoint:
+Train the chat checkpoint:
 
 ```bash
 source .venv/bin/activate
 pip install -e ".[dev]"
-python -m anaxonic.train --config configs/basic_chat.json --data data/basic_responses.jsonl --format chat
+python -m anaxonic.train --config configs/hf_chat_quick.json --data data/hf_chat.jsonl --format chat
 ```
 
 Send a prompt:
 
 ```bash
-python -m anaxonic.sample --checkpoint runs/basic_chat/latest.pt --chat --prompt "Reply with yes."
+python -m anaxonic.sample --checkpoint runs/hf_chat_quick/latest.pt --chat --prompt "Reply with yes."
 ```
 
 Or start an interactive chat loop:
@@ -49,24 +88,21 @@ python3 chat.py --system "Be brief."
 Try a few more:
 
 ```bash
-python -m anaxonic.sample --checkpoint runs/basic_chat/latest.pt --chat --prompt "Hello."
-python -m anaxonic.sample --checkpoint runs/basic_chat/latest.pt --chat --prompt "What is your name?"
-python -m anaxonic.sample --checkpoint runs/basic_chat/latest.pt --chat --system "Be brief." --prompt "Can you answer basic questions?"
+python -m anaxonic.sample --checkpoint runs/hf_chat_quick/latest.pt --chat --prompt "Hello."
+python -m anaxonic.sample --checkpoint runs/hf_chat_quick/latest.pt --chat --prompt "What is your name?"
+python -m anaxonic.sample --checkpoint runs/hf_chat_quick/latest.pt --chat --system "Be brief." --prompt "Can you answer basic questions?"
 ```
 
 If you have not installed the package into your virtualenv yet, prefix commands with
 `PYTHONPATH=src`, for example:
 
 ```bash
-PYTHONPATH=src .venv/bin/python -m anaxonic.sample --checkpoint runs/basic_chat/latest.pt --chat --prompt "Hello."
+PYTHONPATH=src .venv/bin/python -m anaxonic.sample --checkpoint runs/hf_chat_quick/latest.pt --chat --prompt "Hello."
 ```
-
-This is still a tiny byte-level model trained on a starter dataset, so expect basic,
-fragile answers until the dataset and model scale up.
 
 ## Training Accuracy
 
-`configs/basic_chat.json` trains longer than the smoke config and reserves a small
+`configs/hf_chat_quick.json` trains longer than the smoke config and reserves a small
 validation split. Training logs report `val_loss` and `val_accuracy` when that
 split is enabled, which gives a cleaner signal than measuring only on sampled
 training examples. The trainer writes `best.pt` whenever validation loss improves
@@ -93,7 +129,8 @@ status moves. See `docs/TICKETING.md`.
 - `src/anaxonic/sample.py` generates text or chat-style responses from a checkpoint.
 - `src/anaxonic/chat.py` provides an interactive terminal chat loop.
 - `configs/tiny.json` is the smallest useful local training config.
-- `configs/basic_chat.json` is the starter config for response training.
+- `configs/basic_chat.json` is a compact response-training config.
+- `configs/hf_chat_quick.json` is the default local Hugging Face chat-training config.
 - `configs/ci_smoke_chat.json` keeps CI model checks fast.
 
 ## Philosophy

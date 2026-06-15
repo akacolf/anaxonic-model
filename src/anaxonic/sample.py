@@ -42,7 +42,7 @@ def sample(
     chat: bool = False,
     system: str | None = None,
     memory_data: str | None = DEFAULT_RESPONSE_DATA,
-    generate_unknown: bool = False,
+    generate_unknown: bool = True,
 ) -> str:
     if chat and memory_data:
         match = ResponseMemory.from_jsonl(memory_data).lookup(prompt)
@@ -83,7 +83,13 @@ def main() -> None:
     parser.add_argument("--system")
     parser.add_argument("--memory-data", default=DEFAULT_RESPONSE_DATA)
     parser.add_argument("--no-memory", action="store_true")
-    parser.add_argument("--generate-unknown", action="store_true")
+    parser.add_argument(
+        "--memory-only",
+        action="store_false",
+        dest="generate_unknown",
+        help="Only answer prompts found in the memory data.",
+    )
+    parser.set_defaults(generate_unknown=True)
     args = parser.parse_args()
     print(
         sample(

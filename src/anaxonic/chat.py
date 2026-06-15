@@ -7,7 +7,7 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-DEFAULT_CHECKPOINT = "runs/basic_chat/best.pt"
+DEFAULT_CHECKPOINT = "runs/hf_chat_quick/best.pt"
 
 
 def require_torch():
@@ -45,7 +45,7 @@ class ChatSession:
         temperature: float,
         top_k: int | None,
         memory_data: str | None = "data/basic_responses.jsonl",
-        generate_unknown: bool = False,
+        generate_unknown: bool = True,
     ):
         torch = require_torch()
         from anaxonic.checkpoint import load_checkpoint
@@ -113,7 +113,13 @@ def main() -> None:
     parser.add_argument("--top-k", type=int, default=20)
     parser.add_argument("--memory-data", default="data/basic_responses.jsonl")
     parser.add_argument("--no-memory", action="store_true")
-    parser.add_argument("--generate-unknown", action="store_true")
+    parser.add_argument(
+        "--memory-only",
+        action="store_false",
+        dest="generate_unknown",
+        help="Only answer prompts found in the memory data.",
+    )
+    parser.set_defaults(generate_unknown=True)
     args = parser.parse_args()
 
     session = ChatSession(

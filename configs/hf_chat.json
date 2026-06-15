@@ -1,0 +1,27 @@
+{
+  "run_name": "hf_chat",
+  "seed": 1337,
+  "model": {
+    "vocab_size": 256,
+    "context_length": 256,
+    "n_layers": 6,
+    "n_heads": 6,
+    "d_model": 384,
+    "dropout": 0.1
+  },
+  "train": {
+    "batch_size": 8,
+    "gradient_accumulation_steps": 8,
+    "max_steps": 5000,
+    "learning_rate": 0.0003,
+    "weight_decay": 0.1,
+    "grad_clip": 1.0,
+    "eval_interval": 100,
+    "eval_batches": 20,
+    "checkpoint_interval": 500,
+    "out_dir": "runs/hf_chat",
+    "validation_split": 0.02,
+    "mixed_precision": true,
+    "compile_model": false
+  }
+}

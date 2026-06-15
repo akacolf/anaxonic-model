@@ -1,6 +1,7 @@
+import tempfile
 import unittest
+from pathlib import Path
 
-from anaxonic.responses import LOW_CONFIDENCE_RESPONSE
 from anaxonic.sample import format_chat_prompt, trim_chat_response
 from anaxonic.sample import sample
 
@@ -16,17 +17,25 @@ class SampleTest(unittest.TestCase):
         self.assertEqual(trim_chat_response("Yes.\n<|user|>\nAgain?"), "Yes.")
         self.assertEqual(trim_chat_response("Hello.\nextra ramble"), "Hello.")
 
-    def test_chat_sample_returns_low_confidence_for_unknown_memory_prompt(self):
-        self.assertEqual(
-            sample(
+    def test_chat_sample_can_disable_generation_for_unknown_memory_prompt(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            memory_path = Path(tmpdir) / "memory.jsonl"
+            memory_path.write_text('{"prompt":"Hello.","response":"Hi."}\n', encoding="utf-8")
+
+            response = sample(
                 "missing-checkpoint.pt",
                 "explain tensor parallelism",
                 max_new_tokens=20,
                 temperature=0.3,
                 top_k=20,
                 chat=True,
-            ),
-            LOW_CONFIDENCE_RESPONSE,
+                memory_data=str(memory_path),
+                generate_unknown=False,
+            )
+
+        self.assertEqual(
+            response,
+            "I am ready to help. Please send the question again with a little more detail.",
         )
 
 

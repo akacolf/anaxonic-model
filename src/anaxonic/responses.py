@@ -10,8 +10,7 @@ from typing import Any
 
 DEFAULT_RESPONSE_DATA = "data/basic_responses.jsonl"
 LOW_CONFIDENCE_RESPONSE = (
-    "I do not know that yet. I can answer simple starter prompts, and I need more "
-    "training data for that question."
+    "I am ready to help. Please send the question again with a little more detail."
 )
 
 
@@ -99,6 +98,12 @@ def response_is_low_quality(response: str) -> bool:
         return True
     if len(words) >= 2 and len(set(word.casefold() for word in words)) == 1:
         return True
+    if len(words) >= 12:
+        folded_words = [word.casefold() for word in words]
+        short_word_ratio = sum(len(word) <= 4 for word in folded_words) / len(folded_words)
+        unique_word_ratio = len(set(folded_words)) / len(folded_words)
+        if short_word_ratio > 0.75 and unique_word_ratio < 0.65:
+            return True
     if re.fullmatch(r"(ye|yes?)\s+(an|ans|d|s|t)[\w\s.]*", cleaned.casefold()):
         return True
     return False
