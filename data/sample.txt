@@ -1,0 +1,5 @@
+Anaxonic begins as a small language model lab.
+It learns by predicting the next byte in plain text.
+Small systems are easier to inspect, debug, and trust.
+Scale comes later, once the training loop earns it.
+

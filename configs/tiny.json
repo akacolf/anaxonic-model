@@ -1,0 +1,24 @@
+{
+  "run_name": "tiny",
+  "seed": 1337,
+  "model": {
+    "vocab_size": 256,
+    "context_length": 128,
+    "n_layers": 4,
+    "n_heads": 4,
+    "d_model": 256,
+    "dropout": 0.1
+  },
+  "train": {
+    "batch_size": 16,
+    "max_steps": 1000,
+    "learning_rate": 0.0003,
+    "weight_decay": 0.1,
+    "grad_clip": 1.0,
+    "eval_interval": 100,
+    "eval_batches": 20,
+    "checkpoint_interval": 250,
+    "out_dir": "runs/tiny"
+  }
+}
+
