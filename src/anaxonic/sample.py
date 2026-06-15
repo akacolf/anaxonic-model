@@ -7,6 +7,12 @@ import torch
 from anaxonic.checkpoint import load_checkpoint
 from anaxonic.config import ModelConfig
 from anaxonic.model import AnaxonicModel
+from anaxonic.responses import (
+    DEFAULT_RESPONSE_DATA,
+    LOW_CONFIDENCE_RESPONSE,
+    ResponseMemory,
+    response_is_low_quality,
+)
 from anaxonic.tokenizer import ByteTokenizer
 from anaxonic.train import choose_device
 
@@ -35,7 +41,16 @@ def sample(
     top_k: int | None,
     chat: bool = False,
     system: str | None = None,
+    memory_data: str | None = DEFAULT_RESPONSE_DATA,
+    generate_unknown: bool = False,
 ) -> str:
+    if chat and memory_data:
+        match = ResponseMemory.from_jsonl(memory_data).lookup(prompt)
+        if match is not None:
+            return match.response
+        if not generate_unknown:
+            return LOW_CONFIDENCE_RESPONSE
+
     device = choose_device()
     payload = load_checkpoint(checkpoint_path, device)
     model_config = ModelConfig(**payload["config"]["model"])
@@ -50,7 +65,10 @@ def sample(
     output_ids = model.generate(input_ids, max_new_tokens, temperature=temperature, top_k=top_k)
     output = tokenizer.decode(output_ids[0].tolist())
     if chat:
-        return trim_chat_response(output[len(prompt) :])
+        response = trim_chat_response(output[len(prompt) :])
+        if response_is_low_quality(response):
+            return LOW_CONFIDENCE_RESPONSE
+        return response
     return output
 
 
@@ -63,6 +81,9 @@ def main() -> None:
     parser.add_argument("--top-k", type=int, default=50)
     parser.add_argument("--chat", action="store_true")
     parser.add_argument("--system")
+    parser.add_argument("--memory-data", default=DEFAULT_RESPONSE_DATA)
+    parser.add_argument("--no-memory", action="store_true")
+    parser.add_argument("--generate-unknown", action="store_true")
     args = parser.parse_args()
     print(
         sample(
@@ -73,6 +94,8 @@ def main() -> None:
             args.top_k,
             args.chat,
             args.system,
+            None if args.no_memory else args.memory_data,
+            args.generate_unknown,
         )
     )
 

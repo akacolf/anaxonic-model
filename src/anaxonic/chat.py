@@ -44,14 +44,18 @@ class ChatSession:
         max_new_tokens: int,
         temperature: float,
         top_k: int | None,
+        memory_data: str | None = "data/basic_responses.jsonl",
+        generate_unknown: bool = False,
     ):
         torch = require_torch()
         from anaxonic.checkpoint import load_checkpoint
         from anaxonic.config import ModelConfig
         from anaxonic.model import AnaxonicModel
+        from anaxonic.responses import ResponseMemory
         from anaxonic.tokenizer import ByteTokenizer
         from anaxonic.train import choose_device
 
+        self.memory = ResponseMemory.from_jsonl(memory_data) if memory_data else None
         self.device = choose_device()
         payload = load_checkpoint(checkpoint_path, self.device)
         model_config = ModelConfig(**payload["config"]["model"])
@@ -63,13 +67,24 @@ class ChatSession:
         self.max_new_tokens = max_new_tokens
         self.temperature = temperature
         self.top_k = top_k
+        self.generate_unknown = generate_unknown
         self.turns: list[tuple[str, str]] = []
         self.torch = torch
 
     def ask(self, prompt: str) -> str:
         from anaxonic.sample import trim_chat_response
+        from anaxonic.responses import LOW_CONFIDENCE_RESPONSE, response_is_low_quality
 
         self.turns.append(("user", prompt))
+        if self.memory is not None:
+            match = self.memory.lookup(prompt)
+            if match is not None:
+                self.turns.append(("assistant", match.response))
+                return match.response
+            if not self.generate_unknown:
+                self.turns.append(("assistant", LOW_CONFIDENCE_RESPONSE))
+                return LOW_CONFIDENCE_RESPONSE
+
         context = build_chat_context(self.turns, self.system)
         input_ids = self.torch.tensor(
             [self.tokenizer.encode(context)], dtype=self.torch.long, device=self.device
@@ -83,6 +98,8 @@ class ChatSession:
             )
         output = self.tokenizer.decode(output_ids[0].tolist())
         response = trim_chat_response(output[len(context) :])
+        if response_is_low_quality(response):
+            response = LOW_CONFIDENCE_RESPONSE
         self.turns.append(("assistant", response))
         return response
 
@@ -94,6 +111,9 @@ def main() -> None:
     parser.add_argument("--max-new-tokens", type=int, default=120)
     parser.add_argument("--temperature", type=float, default=0.3)
     parser.add_argument("--top-k", type=int, default=20)
+    parser.add_argument("--memory-data", default="data/basic_responses.jsonl")
+    parser.add_argument("--no-memory", action="store_true")
+    parser.add_argument("--generate-unknown", action="store_true")
     args = parser.parse_args()
 
     session = ChatSession(
@@ -102,6 +122,8 @@ def main() -> None:
         args.max_new_tokens,
         args.temperature,
         args.top_k,
+        None if args.no_memory else args.memory_data,
+        args.generate_unknown,
     )
     print("Anaxonic chat. Type /exit to quit.")
     while True:
