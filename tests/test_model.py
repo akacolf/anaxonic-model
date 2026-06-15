@@ -30,6 +30,15 @@ class AnaxonicModelTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "exceeds context"):
             model(torch.tensor([[1, 2, 3]]))
 
+    def test_generate_temperature_zero_uses_argmax(self):
+        config = ModelConfig(context_length=4, n_layers=1, n_heads=1, d_model=8, dropout=0.0)
+        model = AnaxonicModel(config)
+        model.eval()
+
+        output = model.generate(torch.tensor([[1, 2]]), max_new_tokens=2, temperature=0)
+
+        self.assertEqual(output.shape, (1, 4))
+
 
 if __name__ == "__main__":
     unittest.main()

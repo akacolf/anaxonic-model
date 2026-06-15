@@ -109,14 +109,34 @@ class AnaxonicModel(nn.Module):
         max_new_tokens: int,
         temperature: float = 1.0,
         top_k: int | None = None,
+        top_p: float | None = None,
+        repetition_penalty: float = 1.0,
     ) -> Tensor:
         for _ in range(max_new_tokens):
             context = idx[:, -self.config.context_length :]
             logits, _ = self(context)
-            logits = logits[:, -1, :] / max(temperature, 1e-6)
+            logits = logits[:, -1, :]
+            if repetition_penalty > 1.0:
+                for batch_index in range(logits.size(0)):
+                    seen_tokens = context[batch_index].unique()
+                    logits[batch_index, seen_tokens] = logits[batch_index, seen_tokens] / repetition_penalty
+            if temperature <= 0:
+                next_id = torch.argmax(logits, dim=-1, keepdim=True)
+                idx = torch.cat((idx, next_id), dim=1)
+                continue
+            logits = logits / max(temperature, 1e-6)
             if top_k is not None:
                 values, _ = torch.topk(logits, min(top_k, logits.size(-1)))
                 logits = logits.masked_fill(logits < values[:, [-1]], float("-inf"))
+            if top_p is not None and 0.0 < top_p < 1.0:
+                sorted_logits, sorted_indices = torch.sort(logits, descending=True)
+                sorted_probs = F.softmax(sorted_logits, dim=-1)
+                cumulative_probs = torch.cumsum(sorted_probs, dim=-1)
+                sorted_indices_to_remove = cumulative_probs > top_p
+                sorted_indices_to_remove[:, 1:] = sorted_indices_to_remove[:, :-1].clone()
+                sorted_indices_to_remove[:, 0] = False
+                indices_to_remove = sorted_indices_to_remove.scatter(1, sorted_indices, sorted_indices_to_remove)
+                logits = logits.masked_fill(indices_to_remove, float("-inf"))
             probs = F.softmax(logits, dim=-1)
             next_id = torch.multinomial(probs, num_samples=1)
             idx = torch.cat((idx, next_id), dim=1)

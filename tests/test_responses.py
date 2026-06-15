@@ -63,6 +63,7 @@ class ResponsesTest(unittest.TestCase):
             built_in_response("bruhhh"),
             "Yeah, that was not a great answer. Ask me a real question and I will try to answer directly.",
         )
+        self.assertIn("unsure", built_in_response("What should you do if you are unsure?"))
 
     def test_builtin_response_answers_basic_arithmetic(self):
         self.assertEqual(built_in_response("what is 2+2"), "The answer is 4.")
@@ -76,6 +77,7 @@ class ResponsesTest(unittest.TestCase):
                 "Thes the an ang ting be an the ang and tind the t tiners ang and an"
             )
         )
+        self.assertTrue(response_is_low_quality("The ale an and ang and ang anerere."))
         self.assertTrue(response_is_low_quality(""))
         self.assertFalse(response_is_low_quality("I am running and ready to help."))
 

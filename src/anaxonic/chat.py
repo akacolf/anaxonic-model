@@ -8,6 +8,11 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 DEFAULT_CHECKPOINT = "runs/hf_chat_quick/best.pt"
+DEFAULT_MEMORY_DATA = "data/frontier_chat.jsonl"
+DEFAULT_SYSTEM = (
+    "You are Anaxonic, a concise local assistant. Answer directly, be accurate, "
+    "and say when the available information is not enough instead of guessing."
+)
 
 
 def require_torch():
@@ -44,11 +49,13 @@ class ChatSession:
         max_new_tokens: int,
         temperature: float,
         top_k: int | None,
-        memory_data: str | None = "data/basic_responses.jsonl",
+        top_p: float | None = 0.9,
+        repetition_penalty: float = 1.08,
+        memory_data: str | None = DEFAULT_MEMORY_DATA,
         generate_unknown: bool = True,
     ):
         torch = require_torch()
-        from anaxonic.checkpoint import load_checkpoint
+        from anaxonic.checkpoint import load_checkpoint, load_model_state
         from anaxonic.config import ModelConfig
         from anaxonic.model import AnaxonicModel
         from anaxonic.responses import ResponseMemory
@@ -60,13 +67,15 @@ class ChatSession:
         payload = load_checkpoint(checkpoint_path, self.device)
         model_config = ModelConfig(**payload["config"]["model"])
         self.model = AnaxonicModel(model_config).to(self.device)
-        self.model.load_state_dict(payload["model"])
+        load_model_state(self.model, payload["model"])
         self.model.eval()
         self.tokenizer = ByteTokenizer()
-        self.system = system
+        self.system = system or DEFAULT_SYSTEM
         self.max_new_tokens = max_new_tokens
         self.temperature = temperature
         self.top_k = top_k
+        self.top_p = top_p
+        self.repetition_penalty = repetition_penalty
         self.generate_unknown = generate_unknown
         self.turns: list[tuple[str, str]] = []
         self.torch = torch
@@ -104,6 +113,8 @@ class ChatSession:
                 self.max_new_tokens,
                 temperature=self.temperature,
                 top_k=self.top_k,
+                top_p=self.top_p,
+                repetition_penalty=self.repetition_penalty,
             )
         output = self.tokenizer.decode(output_ids[0].tolist())
         response = trim_chat_response(output[len(context) :])
@@ -120,7 +131,9 @@ def main() -> None:
     parser.add_argument("--max-new-tokens", type=int, default=120)
     parser.add_argument("--temperature", type=float, default=0.3)
     parser.add_argument("--top-k", type=int, default=20)
-    parser.add_argument("--memory-data", default="data/basic_responses.jsonl")
+    parser.add_argument("--top-p", type=float, default=0.9)
+    parser.add_argument("--repetition-penalty", type=float, default=1.08)
+    parser.add_argument("--memory-data", default=DEFAULT_MEMORY_DATA)
     parser.add_argument("--no-memory", action="store_true")
     parser.add_argument(
         "--memory-only",
@@ -137,6 +150,8 @@ def main() -> None:
         args.max_new_tokens,
         args.temperature,
         args.top_k,
+        args.top_p,
+        args.repetition_penalty,
         None if args.no_memory else args.memory_data,
         args.generate_unknown,
     )

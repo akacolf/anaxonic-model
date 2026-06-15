@@ -8,6 +8,8 @@ import torch
 from anaxonic.config import ExperimentConfig, config_to_dict
 from anaxonic.model import AnaxonicModel
 
+LEGACY_NON_PARAMETER_KEYS = (".attn.causal_mask",)
+
 
 def save_checkpoint(
     path: str | Path,
@@ -32,3 +34,16 @@ def save_checkpoint(
 
 def load_checkpoint(path: str | Path, device: torch.device) -> dict[str, Any]:
     return torch.load(Path(path), map_location=device)
+
+
+def normalize_model_state_dict(state_dict: dict[str, Any]) -> dict[str, Any]:
+    normalized = {}
+    for key, value in state_dict.items():
+        if key.endswith(LEGACY_NON_PARAMETER_KEYS):
+            continue
+        normalized[key.removeprefix("_orig_mod.")] = value
+    return normalized
+
+
+def load_model_state(model: AnaxonicModel, state_dict: dict[str, Any]) -> None:
+    model.load_state_dict(normalize_model_state_dict(state_dict))

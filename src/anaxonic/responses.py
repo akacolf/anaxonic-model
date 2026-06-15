@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_RESPONSE_DATA = "data/basic_responses.jsonl"
+DEFAULT_RESPONSE_DATA = "data/frontier_chat.jsonl"
 LOW_CONFIDENCE_RESPONSE = (
     "I do not know that yet. Ask a clearer question or add a training example for it."
 )
@@ -86,6 +86,12 @@ def built_in_response(prompt: str) -> str | None:
         return "Because this is still an early local model. More data, better retrieval, and more training will improve me."
     if {"what", "wrong"} <= tokens or {"whats", "wrong"} <= tokens:
         return "I am running normally, but my answers can still be weak while the model is early."
+    if {"validation", "loss"} <= tokens:
+        return "Validation loss measures how well the model predicts held-out examples it did not train on."
+    if {"response", "only", "loss"} <= tokens:
+        return "Response-only loss trains on assistant tokens and ignores system and user prompt tokens."
+    if "unsure" in tokens or {"do", "not", "know"} <= tokens:
+        return "I should say I am unsure instead of guessing, then ask for the missing detail."
     if tokens <= {"bruh", "bruhh", "bruhhh", "bro"}:
         return "Yeah, that was not a great answer. Ask me a real question and I will try to answer directly."
     if {"gimme", "give", "now"} & tokens and len(tokens) <= 4:
@@ -208,6 +214,13 @@ def response_is_low_quality(response: str) -> bool:
         return True
     if len(words) >= 2 and len(set(word.casefold() for word in words)) == 1:
         return True
+    if len(words) >= 6:
+        folded_words = [word.casefold() for word in words]
+        unique_word_ratio = len(set(folded_words)) / len(folded_words)
+        average_word_length = sum(len(word) for word in folded_words) / len(folded_words)
+        max_word_frequency = max(folded_words.count(word) for word in set(folded_words))
+        if average_word_length < 4.5 and unique_word_ratio < 0.8 and max_word_frequency >= 2:
+            return True
     if len(words) >= 12:
         folded_words = [word.casefold() for word in words]
         short_word_ratio = sum(len(word) <= 4 for word in folded_words) / len(folded_words)
