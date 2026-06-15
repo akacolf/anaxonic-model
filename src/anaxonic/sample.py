@@ -11,6 +11,7 @@ from anaxonic.responses import (
     DEFAULT_RESPONSE_DATA,
     LOW_CONFIDENCE_RESPONSE,
     ResponseMemory,
+    built_in_response,
     response_is_low_quality,
 )
 from anaxonic.tokenizer import ByteTokenizer
@@ -44,12 +45,16 @@ def sample(
     memory_data: str | None = DEFAULT_RESPONSE_DATA,
     generate_unknown: bool = True,
 ) -> str:
-    if chat and memory_data:
-        match = ResponseMemory.from_jsonl(memory_data).lookup(prompt)
-        if match is not None:
-            return match.response
-        if not generate_unknown:
-            return LOW_CONFIDENCE_RESPONSE
+    if chat:
+        built_in = built_in_response(prompt)
+        if built_in is not None:
+            return built_in
+        if memory_data:
+            match = ResponseMemory.from_jsonl(memory_data).lookup(prompt)
+            if match is not None:
+                return match.response
+            if not generate_unknown:
+                return LOW_CONFIDENCE_RESPONSE
 
     device = choose_device()
     payload = load_checkpoint(checkpoint_path, device)

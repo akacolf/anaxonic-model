@@ -114,6 +114,40 @@ For a faster CI-style check:
 python -m anaxonic.train --config configs/ci_smoke_chat.json --data data/basic_responses.jsonl --format chat
 ```
 
+## Data And Prompt Evals
+
+Build a cleaned local chat dataset by mixing the existing response memory with
+the stronger frontier seed examples:
+
+```bash
+PYTHONPATH=src python3 -m anaxonic.build_chat_data \
+  --input data/basic_responses.jsonl \
+  --input data/frontier_seed_chat.jsonl \
+  --output data/frontier_chat.jsonl
+```
+
+Train the larger, longer local frontier config:
+
+```bash
+PYTHONPATH=src python3 -m anaxonic.train \
+  --config configs/frontier_chat.json \
+  --data data/frontier_chat.jsonl \
+  --format chat
+```
+
+Run the fixed prompt eval set against any checkpoint:
+
+```bash
+PYTHONPATH=src python3 -m anaxonic.eval_chat \
+  --checkpoint runs/frontier_chat/best.pt \
+  --eval-data data/prompt_eval.jsonl \
+  --output runs/frontier_chat/eval_best.json
+```
+
+Use the same eval file for every run. Treat a run as more convincing when
+validation loss, prompt eval pass rate, and fixed-prompt samples improve
+together.
+
 ## Ticketing
 
 Use Linear as the planning source of truth for this repo. Keep issue keys in
@@ -131,6 +165,7 @@ status moves. See `docs/TICKETING.md`.
 - `configs/tiny.json` is the smallest useful local training config.
 - `configs/basic_chat.json` is a compact response-training config.
 - `configs/hf_chat_quick.json` is the default local Hugging Face chat-training config.
+- `configs/frontier_chat.json` is a larger, longer chat-training config for cleaned data.
 - `configs/ci_smoke_chat.json` keeps CI model checks fast.
 
 ## Philosophy

@@ -4,18 +4,27 @@ import json
 import re
 from dataclasses import dataclass
 from difflib import SequenceMatcher
+from fractions import Fraction
+from operator import add, mul, sub, truediv
 from pathlib import Path
 from typing import Any
 
 
 DEFAULT_RESPONSE_DATA = "data/basic_responses.jsonl"
 LOW_CONFIDENCE_RESPONSE = (
-    "I am ready to help. Please send the question again with a little more detail."
+    "I do not know that yet. Ask a clearer question or add a training example for it."
 )
 
 
 def normalize_prompt(prompt: str) -> str:
     text = prompt.casefold()
+    text = text.replace("'", "")
+    text = text.replace("`", "")
+    text = text.replace("’", "")
+    text = re.sub(r"\bwhat\s*s\b|\bwhats\b", "what is", text)
+    text = re.sub(r"\bwho\s*s\b|\bwhos\b", "who is", text)
+    text = re.sub(r"\byou\s*re\b|\byoure\b", "you are", text)
+    text = re.sub(r"\bdoin\b", "doing", text)
     text = re.sub(r"[^a-z0-9\s]", " ", text)
     return " ".join(text.split())
 
@@ -41,7 +50,7 @@ class ResponseMemory:
             examples.extend(_examples_from_record(payload, line_number, path))
         return cls(examples)
 
-    def lookup(self, prompt: str, min_score: float = 0.74) -> ResponseMatch | None:
+    def lookup(self, prompt: str, min_score: float = 0.78) -> ResponseMatch | None:
         normalized = normalize_prompt(prompt)
         if not normalized:
             return None
@@ -50,13 +59,114 @@ class ResponseMemory:
         for source_prompt, response, source_normalized in self.examples:
             if normalized == source_normalized:
                 return ResponseMatch(source_prompt, response, 1.0)
-            score = SequenceMatcher(None, normalized, source_normalized).ratio()
+            score = _match_score(normalized, source_normalized)
             if best is None or score > best.score:
                 best = ResponseMatch(source_prompt, response, score)
 
         if best is None or best.score < min_score:
             return None
         return best
+
+
+def built_in_response(prompt: str) -> str | None:
+    normalized = normalize_prompt(prompt)
+    if not normalized:
+        return None
+
+    arithmetic = _answer_arithmetic(prompt)
+    if arithmetic is not None:
+        return arithmetic
+
+    tokens = set(normalized.split())
+    if "age" in tokens:
+        return "I do not have an age. I am a local model in the Anaxonic project."
+    if {"why", "important"} <= tokens:
+        return "I matter when I give useful answers. Right now I am a small model being improved."
+    if {"why", "like", "this"} <= tokens:
+        return "Because this is still an early local model. More data, better retrieval, and more training will improve me."
+    if {"what", "wrong"} <= tokens or {"whats", "wrong"} <= tokens:
+        return "I am running normally, but my answers can still be weak while the model is early."
+    if tokens <= {"bruh", "bruhh", "bruhhh", "bro"}:
+        return "Yeah, that was not a great answer. Ask me a real question and I will try to answer directly."
+    if {"gimme", "give", "now"} & tokens and len(tokens) <= 4:
+        return "Tell me what you want me to give you, and I will try."
+    return None
+
+
+def _match_score(prompt: str, candidate: str) -> float:
+    prompt_tokens = set(prompt.split())
+    candidate_tokens = set(candidate.split())
+    if not prompt_tokens or not candidate_tokens:
+        return 0.0
+
+    overlap = len(prompt_tokens & candidate_tokens)
+    if overlap == 0:
+        return 0.0
+    coverage = overlap / len(prompt_tokens)
+    precision = overlap / len(candidate_tokens)
+    sequence = SequenceMatcher(None, prompt, candidate).ratio()
+
+    if len(prompt_tokens) <= 2 and coverage < 1.0:
+        return 0.0
+    identity_tokens = {"age", "name", "creator", "creators"}
+    if (identity_tokens & prompt_tokens) != (identity_tokens & candidate_tokens):
+        sequence *= 0.65
+    return (coverage * 0.5) + (precision * 0.25) + (sequence * 0.25)
+
+
+def _answer_arithmetic(normalized: str) -> str | None:
+    normalized = normalize_prompt(
+        normalized.replace("+", " plus ")
+        .replace("-", " minus ")
+        .replace("*", " times ")
+        .replace("/", " divided by ")
+    )
+    number_words = {
+        "zero": "0",
+        "one": "1",
+        "two": "2",
+        "three": "3",
+        "four": "4",
+        "five": "5",
+        "six": "6",
+        "seven": "7",
+        "eight": "8",
+        "nine": "9",
+        "ten": "10",
+    }
+    for word, digit in number_words.items():
+        normalized = re.sub(rf"\b{word}\b", digit, normalized)
+    match = re.fullmatch(
+        r"(?:what is |calculate |solve )?(-?\d+)\s*(plus|minus|times|multiplied by|x|divided by)\s*(-?\d+)",
+        normalized,
+    )
+    if match is None:
+        return None
+
+    left = int(match.group(1))
+    operator = match.group(2)
+    right = int(match.group(3))
+    operations = {
+        "plus": add,
+        "minus": sub,
+        "times": mul,
+        "multiplied by": mul,
+        "x": mul,
+        "divided by": truediv,
+    }
+    if operator == "divided by" and right == 0:
+        return "Division by zero is undefined."
+
+    result = operations[operator](left, right)
+    if isinstance(result, float):
+        result = Fraction(result).limit_denominator()
+        if result.denominator == 1:
+            result_text = str(result.numerator)
+        else:
+            result_text = f"{result.numerator}/{result.denominator}"
+    else:
+        result_text = str(result)
+    return f"The answer is {result_text}."
 
 
 def _examples_from_record(

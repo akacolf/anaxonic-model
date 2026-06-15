@@ -1,0 +1,30 @@
+{"messages":[{"role":"system","content":"You are Anaxonic, a concise local assistant. Give direct, useful answers and admit uncertainty briefly."},{"role":"user","content":"What is a good next step for this model project?"},{"role":"assistant","content":"Build a cleaner chat dataset, train a longer run, and compare checkpoints with a fixed prompt eval set."}]}
+{"prompt":"Explain validation loss in simple terms.","response":"Validation loss measures how well the model predicts held-out examples it did not train on. Lower is usually better."}
+{"prompt":"Why is a prompt eval set useful?","response":"A prompt eval set keeps the questions fixed so each checkpoint can be compared against the same target behavior."}
+{"prompt":"What makes chat training data good?","response":"Good chat data has clear prompts, direct answers, consistent formatting, and examples that match the behavior you want."}
+{"prompt":"How should I compare two training runs?","response":"Compare validation loss, prompt eval pass rate, and a small set of sampled outputs from the same prompts."}
+{"prompt":"What should I do if sampled answers improve but validation loss gets worse?","response":"Treat it as mixed evidence. Check the eval prompts, inspect examples, and run a small repeat before trusting the result."}
+{"prompt":"Give a concise debugging plan for a bad chat checkpoint.","response":"Check the data format, verify response masking, run a tiny overfit test, compare validation loss, then inspect fixed prompt outputs."}
+{"prompt":"What is response-only loss?","response":"Response-only loss trains the model on assistant tokens while ignoring system and user prompt tokens."}
+{"prompt":"Why should examples be deduplicated?","response":"Duplicates can make metrics look better than they are and can cause the model to memorize narrow replies."}
+{"prompt":"Write one sentence about clean data.","response":"Clean data teaches the model the behavior you want without adding avoidable noise."}
+{"prompt":"Answer yes or no: should we keep an eval set separate from training data?","response":"Yes."}
+{"prompt":"What is overfitting?","response":"Overfitting happens when a model memorizes training examples instead of learning patterns that generalize."}
+{"prompt":"Give a practical sign of overfitting.","response":"Training loss keeps falling while validation loss stops improving or gets worse."}
+{"prompt":"What is a checkpoint?","response":"A checkpoint is a saved model state that can be resumed, sampled, or evaluated later."}
+{"prompt":"How do I make a run more reliable?","response":"Fix the seed, keep the eval set unchanged, save checkpoints, and log comparable metrics."}
+{"prompt":"What should a local model say when it is unsure?","response":"It should say it is unsure and ask for the missing detail instead of guessing."}
+{"prompt":"Give a short answer: what is JSONL?","response":"JSONL is a file format with one JSON object per line."}
+{"prompt":"What format does Anaxonic chat data use?","response":"It uses either prompt and response fields or a messages list with user and assistant turns."}
+{"prompt":"How can I make the dataset stronger without internet data?","response":"Add focused local examples for target behaviors, remove duplicates, and keep a separate held-out eval set."}
+{"prompt":"What should I avoid putting in training data?","response":"Avoid broken formatting, duplicate examples, stale disclaimers, unsafe instructions, and answers you would not want repeated."}
+{"prompt":"Summarize the frontier step in one sentence.","response":"Use better data, longer training, and fixed prompt evals to measure real progress."}
+{"messages":[{"role":"user","content":"I got a weird repetitive answer. What now?"},{"role":"assistant","content":"Lower sampling temperature, inspect the checkpoint with fixed prompts, and add cleaner examples for the behavior you want."}]}
+{"messages":[{"role":"user","content":"What is the difference between train and eval data?"},{"role":"assistant","content":"Train data updates the model weights; eval data is held back to measure whether the model generalizes."}]}
+{"messages":[{"role":"system","content":"Answer in one short sentence."},{"role":"user","content":"Why train bigger or longer?"},{"role":"assistant","content":"A larger or longer run can learn richer patterns if the data and evaluation are strong enough."}]}
+{"prompt":"What is a smoke training run?","response":"A smoke run is a tiny training job that checks the pipeline works without trying to produce a strong model."}
+{"prompt":"What is an effective batch size?","response":"Effective batch size is batch size multiplied by gradient accumulation steps."}
+{"prompt":"Why use gradient accumulation?","response":"Gradient accumulation simulates a larger batch when hardware memory is limited."}
+{"prompt":"When should I trust a training improvement?","response":"Trust it more when validation loss, prompt evals, and repeated samples improve together."}
+{"prompt":"Tell me how to run a prompt eval.","response":"Run the eval CLI against a checkpoint and the fixed prompt eval JSONL file."}
+{"prompt":"What does a pass rate mean?","response":"Pass rate is the fraction of eval prompts whose responses met the simple checks for that case."}

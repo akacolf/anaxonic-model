@@ -35,8 +35,22 @@ class SampleTest(unittest.TestCase):
 
         self.assertEqual(
             response,
-            "I am ready to help. Please send the question again with a little more detail.",
+            "I do not know that yet. Ask a clearer question or add a training example for it.",
         )
+
+    def test_chat_sample_uses_builtin_response_before_checkpoint(self):
+        response = sample(
+            "missing-checkpoint.pt",
+            "what is 2+2",
+            max_new_tokens=20,
+            temperature=0.3,
+            top_k=20,
+            chat=True,
+            memory_data=None,
+            generate_unknown=False,
+        )
+
+        self.assertEqual(response, "The answer is 4.")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,10 @@
+{"id":"identity","category":"basic","prompt":"What are you?","expected_contains":["Anaxonic"],"expected_not_contains":["ChatGPT"],"max_chars":160}
+{"id":"jsonl","category":"data","prompt":"What is JSONL?","expected_contains":["one JSON"],"max_chars":180}
+{"id":"eval-purpose","category":"eval","prompt":"Why is a prompt eval set useful?","expected_contains":["compare","fixed"],"max_chars":220}
+{"id":"validation-loss","category":"training","prompt":"Explain validation loss simply.","expected_contains":["held-out"],"max_chars":240}
+{"id":"response-only-loss","category":"training","prompt":"What is response-only loss?","expected_contains":["assistant","ignore"],"max_chars":240}
+{"id":"uncertainty","category":"behavior","prompt":"What should you do if you are unsure?","expected_contains":["unsure"],"expected_not_contains":["make up"],"max_chars":180}
+{"id":"dedupe","category":"data","prompt":"Why should training examples be deduplicated?","expected_contains":["duplicate"],"max_chars":220}
+{"id":"compare-runs","category":"eval","prompt":"How should I compare two training runs?","expected_contains":["validation","eval"],"max_chars":260}
+{"id":"two-plus-two","category":"basic","prompt":"What is 2+2?","expected_contains":["4"],"max_chars":80}
+{"id":"frontier-summary","category":"project","prompt":"Summarize the frontier step in one sentence.","expected_contains":["data","eval"],"max_chars":180}

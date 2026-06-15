@@ -1,0 +1,27 @@
+{
+  "run_name": "frontier_chat",
+  "seed": 1337,
+  "model": {
+    "vocab_size": 256,
+    "context_length": 384,
+    "n_layers": 8,
+    "n_heads": 8,
+    "d_model": 512,
+    "dropout": 0.1
+  },
+  "train": {
+    "batch_size": 4,
+    "gradient_accumulation_steps": 32,
+    "max_steps": 15000,
+    "learning_rate": 0.0002,
+    "weight_decay": 0.1,
+    "grad_clip": 1.0,
+    "eval_interval": 100,
+    "eval_batches": 30,
+    "checkpoint_interval": 500,
+    "out_dir": "runs/frontier_chat",
+    "validation_split": 0.03,
+    "mixed_precision": true,
+    "compile_model": false
+  }
+}

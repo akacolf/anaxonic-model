@@ -73,9 +73,18 @@ class ChatSession:
 
     def ask(self, prompt: str) -> str:
         from anaxonic.sample import trim_chat_response
-        from anaxonic.responses import LOW_CONFIDENCE_RESPONSE, response_is_low_quality
+        from anaxonic.responses import (
+            LOW_CONFIDENCE_RESPONSE,
+            built_in_response,
+            response_is_low_quality,
+        )
 
         self.turns.append(("user", prompt))
+        built_in = built_in_response(prompt)
+        if built_in is not None:
+            self.turns.append(("assistant", built_in))
+            return built_in
+
         if self.memory is not None:
             match = self.memory.lookup(prompt)
             if match is not None:
