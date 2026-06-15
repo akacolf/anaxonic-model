@@ -36,8 +36,11 @@ class TrainConfig:
     eval_batches: int = 20
     checkpoint_interval: int = 250
     out_dir: str = "runs/tiny"
+    metrics_file: str = "metrics.jsonl"
     validation_split: float = 0.0
+    early_stop_patience: int = 0
     mixed_precision: bool = True
+    allow_tf32: bool = True
     compile_model: bool = False
 
 

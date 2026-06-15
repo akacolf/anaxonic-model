@@ -23,6 +23,7 @@
     "checkpoint_interval": 500,
     "out_dir": "runs/frontier_chat",
     "validation_split": 0.08,
+    "early_stop_patience": 12,
     "mixed_precision": true,
     "compile_model": false
   }

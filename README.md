@@ -111,7 +111,22 @@ PYTHONPATH=src .venv/bin/python -m anaxonic.sample --checkpoint runs/hf_chat_qui
 validation split. Training logs report `val_loss` and `val_accuracy` when that
 split is enabled, which gives a cleaner signal than measuring only on sampled
 training examples. The trainer writes `best.pt` whenever validation loss improves
-and `latest.pt` at normal checkpoint intervals.
+and `latest.pt` at normal checkpoint intervals. It also writes a JSONL training
+curve at `runs/<run>/metrics.jsonl`, including gradient norm and approximate
+tokens-per-second for quick stability and throughput checks.
+
+For byte-level training, a random model starts near `ln(256) = 5.545` loss. A
+two-step smoke run around 5.5 means the model is still close to random, not that
+the target loss should already be near zero. To check whether the model and data
+pipeline can actually learn, run the no-validation overfit diagnostic and look
+for training/eval loss to fall sharply:
+
+```bash
+python -m anaxonic.train \
+  --config configs/overfit_chat.json \
+  --data data/basic_responses.jsonl \
+  --format chat
+```
 
 For a faster CI-style check:
 
@@ -149,6 +164,16 @@ PYTHONPATH=src python3 -m anaxonic.eval_chat \
   --output runs/frontier_chat/eval_best.json
 ```
 
+Gate a checkpoint before release:
+
+```bash
+PYTHONPATH=src python3 -m anaxonic.release_gate \
+  --report runs/frontier_chat/eval_best.json \
+  --min-pass-rate 0.8 \
+  --min-category-pass-rate 0.7 \
+  --max-quality-failures 0
+```
+
 Benchmark multiple checkpoints with the same prompt suite:
 
 ```bash
@@ -164,6 +189,13 @@ validation loss, prompt eval pass rate, and fixed-prompt samples improve
 together. The eval summary also reports per-category pass rates and rejects
 obvious degenerate repetition, so you can spot whether a checkpoint improved
 broad behavior or only one easy slice.
+
+This repo now covers the local versions of several production practices:
+checkpointing, metrics history, cleaned/deduped data builds, fixed prompt evals,
+quality checks, early stopping, and release gates. Kubernetes/MPI launchers,
+blob checkpoint storage, Prometheus/Grafana, GPU health checks, custom
+scheduling, preference modeling, and RLAIF are still scale-out layers to add
+after the single-process training loop is consistently learning.
 
 ## Ticketing
 

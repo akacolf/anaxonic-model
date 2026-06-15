@@ -21,6 +21,7 @@
     "checkpoint_interval": 500,
     "out_dir": "runs/hf_chat",
     "validation_split": 0.02,
+    "early_stop_patience": 10,
     "mixed_precision": true,
     "compile_model": false
   }
