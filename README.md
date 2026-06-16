@@ -269,6 +269,10 @@ blob checkpoint storage, Prometheus/Grafana, GPU health checks, custom
 scheduling, preference modeling, and RLAIF are still scale-out layers to add
 after the single-process training loop is consistently learning.
 
+For a staged path from local evals to public benchmarks such as MMLU, GPQA,
+SWE-bench Pro, GDPval, Blueprint-Bench, OSWorld, and Terminal-Bench, see
+[`docs/BENCHMARK_STRATEGY.md`](docs/BENCHMARK_STRATEGY.md).
+
 ## Ticketing
 
 Use Linear as the planning source of truth for this repo. Keep issue keys in
