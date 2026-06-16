@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "public_research_basis": [
+    {
+      "source": "OpenAI",
+      "url": "https://openai.com/index/scaling-kubernetes-to-7500-nodes/",
+      "signals": [
+        "Kubernetes for large GPU research clusters",
+        "MPI-style distributed jobs",
+        "regular checkpoint restart",
+        "blob storage for datasets and checkpoints",
+        "Prometheus and Grafana monitoring",
+        "GPU health checks",
+        "quota and gang scheduling"
+      ]
+    },
+    {
+      "source": "OpenAI",
+      "url": "https://openai.com/index/triton/",
+      "signals": [
+        "Triton-style custom GPU kernels for performance-critical operators"
+      ]
+    },
+    {
+      "source": "Anthropic",
+      "url": "https://www.anthropic.com/research/constitutional-ai-harmlessness-from-ai-feedback",
+      "signals": [
+        "Constitutional AI",
+        "supervised revision",
+        "preference modeling",
+        "reinforcement learning from AI feedback"
+      ]
+    },
+    {
+      "source": "Anthropic",
+      "url": "https://www.anthropic.com/news/responsible-scaling-policy-v3",
+      "signals": [
+        "capability thresholds",
+        "risk reports",
+        "frontier safety roadmaps",
+        "stronger release governance"
+      ]
+    }
+  ],
+  "components": [
+    {
+      "name": "containerized_runtime",
+      "status": "scaffolded",
+      "repo_artifact": "Dockerfile",
+      "purpose": "Make training and eval commands reproducible across local machines and clusters.",
+      "next_step": "Build CPU and CUDA-tagged images in CI."
+    },
+    {
+      "name": "kubernetes_training_job",
+      "status": "scaffolded",
+      "repo_artifact": "infra/kubernetes/anaxonic-train-job.yaml",
+      "purpose": "Run the existing trainer as a restartable cluster job with persistent data and checkpoint volumes.",
+      "next_step": "Parameterize image, GPU count, PVC names, and node selectors per cluster."
+    },
+    {
+      "name": "distributed_training",
+      "status": "planned",
+      "repo_artifact": null,
+      "purpose": "Move from one-process training to torchrun/FSDP or DeepSpeed-style multi-GPU jobs.",
+      "next_step": "Add a torchrun entrypoint and checkpoint compatibility tests before using multiple nodes."
+    },
+    {
+      "name": "checkpoint_storage",
+      "status": "local_implemented",
+      "repo_artifact": "src/anaxonic/checkpoint.py",
+      "purpose": "Save latest, best, and step checkpoints; later sync them to blob storage.",
+      "next_step": "Add object-store upload/download hooks with checksum validation."
+    },
+    {
+      "name": "metrics_and_monitoring",
+      "status": "local_implemented",
+      "repo_artifact": "src/anaxonic/train.py",
+      "purpose": "Record JSONL metrics for loss, accuracy, gradient norm, perplexity, and throughput.",
+      "next_step": "Expose metrics to Prometheus or convert metrics.jsonl into Prometheus textfile format."
+    },
+    {
+      "name": "gpu_health_checks",
+      "status": "planned",
+      "repo_artifact": null,
+      "purpose": "Catch unhealthy GPU hosts before training and quarantine them in cluster runs.",
+      "next_step": "Add optional DCGM/NVML preflight checks in the Kubernetes job environment."
+    },
+    {
+      "name": "data_pipeline_manifest",
+      "status": "partial",
+      "repo_artifact": "configs/scale_stack.json",
+      "purpose": "Track data sources, filters, dedupe, exclusions, and eval contamination controls.",
+      "next_step": "Emit per-run data manifests from prepare_hf and build_chat_data."
+    },
+    {
+      "name": "alignment_training",
+      "status": "planned",
+      "repo_artifact": null,
+      "purpose": "Add preference data, supervised critique/revision, and RLAIF-style feedback loops.",
+      "next_step": "Start with offline preference-pair scoring before adding any RL optimizer."
+    },
+    {
+      "name": "release_governance",
+      "status": "local_implemented",
+      "repo_artifact": "src/anaxonic/release_gate.py",
+      "purpose": "Require gates before claiming or shipping stronger checkpoints.",
+      "next_step": "Require benchmark_manifest entries and failure analysis for every public claim."
+    },
+    {
+      "name": "kernel_optimization",
+      "status": "planned",
+      "repo_artifact": null,
+      "purpose": "Profile bottlenecks and consider torch.compile or Triton kernels only after model scale warrants it.",
+      "next_step": "Add operator-level profiling before writing custom kernels."
+    }
+  ]
+}

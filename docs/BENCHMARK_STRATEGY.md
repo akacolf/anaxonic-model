@@ -56,6 +56,32 @@ the scaffold around the model as much as the weights themselves.
      dependency versions, wall-clock limits, and token/tool budgets.
    - Publish both headline scores and failure categories.
 
+## Scale Stack
+
+Benchmarks prove capability only when the training and evaluation stack is
+controlled. Public frontier-lab infrastructure points to a consistent pattern:
+containerized jobs, Kubernetes scheduling for large GPU fleets, MPI-style
+distributed training, regular checkpoint restart, blob storage for datasets and
+checkpoints, Prometheus/Grafana monitoring, GPU health checks, quota-aware
+scheduling, custom kernels where profiling justifies them, and explicit release
+governance.
+
+The current repo implements the local floor and scaffolds the next layer:
+
+- `Dockerfile` builds a reproducible training/eval container.
+- `infra/kubernetes/anaxonic-train-job.yaml` runs the existing trainer as a
+  Kubernetes Job with persistent data and checkpoint volumes.
+- `configs/scale_stack.json` tracks infra, data, monitoring, alignment, kernel,
+  and release-governance components by status and next step.
+- `configs/benchmark_manifest.json` tracks benchmark stages, scaffold
+  dependency, metrics, and mandatory reporting fields.
+- `python -m anaxonic.scale_stack` validates both manifests and prints the
+  implemented/planned stack summary.
+
+Do not treat Docker or Kubernetes as a substitute for model quality. They are
+reproducibility and scale controls. The ladder still starts with local loss,
+fixed prompt evals, and release gates before expensive distributed runs.
+
 ## Capability Workstreams
 
 ### Foundation Model
@@ -66,6 +92,10 @@ the scaffold around the model as much as the weights themselves.
   a bottleneck.
 - Add mixture accounting so each training run records dataset names, versions,
   counts, weights, and filtering rules.
+- Add distributed training only after checkpoint compatibility, deterministic
+  restart, and per-rank metrics are covered by tests.
+- Profile operator bottlenecks before adding custom Triton kernels or other
+  low-level GPU code.
 
 ### Reasoning
 
@@ -75,6 +105,8 @@ the scaffold around the model as much as the weights themselves.
   defaults.
 - Track uncertainty: wrong confident answers are worse than honest abstentions
   on science and expert-work benchmarks.
+- Add preference-pair, critique, and supervised-revision data before attempting
+  RLAIF-style reinforcement learning.
 
 ### Coding
 
@@ -84,12 +116,15 @@ the scaffold around the model as much as the weights themselves.
   within a fixed budget.
 - Measure compile/test failures, overfitting to visible tests, and excessive
   edits as first-class failure modes.
+- Run code evals in containers with pinned dependencies and clean worktrees.
 
 ### Computer Use
 
 - Add screenshot/image inputs before attempting OSWorld or Blueprint-Bench.
 - Separate perception failures from planning failures and action failures.
 - Prefer execution-based scoring whenever a benchmark provides it.
+- Record tool calls, screenshots, file edits, command output, and final state in
+  one trace schema so agent failures are comparable across benchmarks.
 
 ### Economically Valuable Work
 
@@ -117,14 +152,29 @@ Every benchmark report should include:
 ## Near-Term Milestones
 
 1. Add a multiple-choice eval harness for MMLU/GPQA-style datasets.
-2. Add a benchmark manifest file that records benchmark name, split, source,
-   command, metric, and release threshold.
+2. Extend `configs/benchmark_manifest.json` with real public split/source
+   metadata as each adapter lands.
 3. Add a code-execution eval harness with a tiny local task set.
 4. Add a unified agent trace schema.
 5. Add CI gates for smoke evals and benchmark report validation.
 6. Add contamination controls: dataset manifests, hash lists, and eval-source
    exclusions.
 7. Run public benchmark dry-runs before any leaderboard submission.
+8. Add CUDA image builds, object-store checkpoint sync, and Prometheus export
+   only after local runs are stable.
+
+## Public Research Basis
+
+These docs use public sources only, not private-stack claims:
+
+- OpenAI, "Scaling Kubernetes to 7,500 nodes":
+  https://openai.com/index/scaling-kubernetes-to-7500-nodes/
+- OpenAI, "Introducing Triton":
+  https://openai.com/index/triton/
+- Anthropic, "Constitutional AI: Harmlessness from AI Feedback":
+  https://www.anthropic.com/research/constitutional-ai-harmlessness-from-ai-feedback
+- Anthropic, "Responsible Scaling Policy Version 3.0":
+  https://www.anthropic.com/news/responsible-scaling-policy-v3
 
 ## Claim Discipline
 

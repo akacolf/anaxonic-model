@@ -1,0 +1,56 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: anaxonic-train
+  labels:
+    app.kubernetes.io/name: anaxonic
+    app.kubernetes.io/component: training
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: anaxonic
+        app.kubernetes.io/component: training
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: trainer
+          image: anaxonic-model:local
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: PYTHONPATH
+              value: /app/src
+          command:
+            - python
+            - -m
+            - anaxonic.train
+          args:
+            - --config
+            - configs/tiny.json
+            - --data
+            - /mnt/data/sample.txt
+            - --format
+            - text
+          resources:
+            requests:
+              cpu: "2"
+              memory: 4Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+          volumeMounts:
+            - name: anaxonic-data
+              mountPath: /mnt/data
+              readOnly: true
+            - name: anaxonic-runs
+              mountPath: /app/runs
+      volumes:
+        - name: anaxonic-data
+          persistentVolumeClaim:
+            claimName: anaxonic-data
+        - name: anaxonic-runs
+          persistentVolumeClaim:
+            claimName: anaxonic-runs

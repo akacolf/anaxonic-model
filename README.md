@@ -269,9 +269,28 @@ blob checkpoint storage, Prometheus/Grafana, GPU health checks, custom
 scheduling, preference modeling, and RLAIF are still scale-out layers to add
 after the single-process training loop is consistently learning.
 
+The first scale-stack scaffolds are now tracked in code:
+
+```bash
+python -m anaxonic.scale_stack
+docker build -t anaxonic-model:local .
+kubectl apply -f infra/kubernetes/anaxonic-train-job.yaml
+```
+
+`configs/scale_stack.json` records the Docker, Kubernetes, distributed training,
+checkpoint storage, monitoring, GPU health, alignment, release-governance, and
+kernel-optimization layers. `configs/benchmark_manifest.json` records which
+benchmarks are implemented, planned, or blocked on missing scaffolds. The
+Kubernetes manifest is a starting job scaffold; parameterize the image, PVCs,
+GPU resources, node selectors, and secrets for the target cluster before using
+it on shared infrastructure.
+
 For a staged path from local evals to public benchmarks such as MMLU, GPQA,
 SWE-bench Pro, GDPval, Blueprint-Bench, OSWorld, and Terminal-Bench, see
 [`docs/BENCHMARK_STRATEGY.md`](docs/BENCHMARK_STRATEGY.md).
+
+For the infra roadmap and deployable scaffold files, see
+[`infra/README.md`](infra/README.md).
 
 ## Ticketing
 

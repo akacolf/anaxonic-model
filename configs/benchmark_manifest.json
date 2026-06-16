@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "reporting_required_fields": [
+    "model_checkpoint",
+    "git_commit",
+    "training_data_manifest",
+    "eval_split",
+    "benchmark_version",
+    "scaffold_version",
+    "tool_permissions",
+    "decoding_settings",
+    "random_seeds",
+    "token_budget",
+    "time_budget",
+    "retry_budget",
+    "aggregate_score",
+    "per_category_scores",
+    "failure_analysis"
+  ],
+  "benchmarks": [
+    {
+      "name": "local_prompt_eval",
+      "stage": "local_gate",
+      "capability": "chat regression and basic quality",
+      "adapter_status": "implemented",
+      "command": "PYTHONPATH=src python3 -m anaxonic.eval_chat --checkpoint runs/frontier_chat/best.pt --eval-data data/prompt_eval.jsonl --output runs/frontier_chat/eval_best.json",
+      "metric": "pass_rate",
+      "release_threshold": 0.8,
+      "scaffold_dependency": "low"
+    },
+    {
+      "name": "mmlu_pro_style",
+      "stage": "multiple_choice",
+      "capability": "broad academic knowledge and calibrated answer extraction",
+      "adapter_status": "planned",
+      "metric": "accuracy",
+      "release_threshold": null,
+      "scaffold_dependency": "medium"
+    },
+    {
+      "name": "gpqa_diamond_style",
+      "stage": "multiple_choice",
+      "capability": "graduate-level science reasoning and uncertainty tracking",
+      "adapter_status": "planned",
+      "metric": "accuracy",
+      "release_threshold": null,
+      "scaffold_dependency": "medium"
+    },
+    {
+      "name": "local_code_execution",
+      "stage": "code_execution",
+      "capability": "generate and repair executable code under tests",
+      "adapter_status": "planned",
+      "metric": "pass_at_1",
+      "release_threshold": null,
+      "scaffold_dependency": "high"
+    },
+    {
+      "name": "swe_bench_pro_style",
+      "stage": "agent",
+      "capability": "repository-level software engineering",
+      "adapter_status": "planned",
+      "metric": "resolved_tasks",
+      "release_threshold": null,
+      "scaffold_dependency": "very_high"
+    },
+    {
+      "name": "terminal_bench_style",
+      "stage": "agent",
+      "capability": "long-horizon command-line work",
+      "adapter_status": "planned",
+      "metric": "execution_score",
+      "release_threshold": null,
+      "scaffold_dependency": "very_high"
+    },
+    {
+      "name": "osworld_style",
+      "stage": "agent",
+      "capability": "GUI computer-use behavior",
+      "adapter_status": "blocked_on_vision",
+      "metric": "task_success",
+      "release_threshold": null,
+      "scaffold_dependency": "very_high"
+    },
+    {
+      "name": "gdpval_style",
+      "stage": "agent",
+      "capability": "economically valuable deliverables",
+      "adapter_status": "planned",
+      "metric": "rubric_score",
+      "release_threshold": null,
+      "scaffold_dependency": "very_high"
+    },
+    {
+      "name": "blueprint_bench_style",
+      "stage": "multimodal_agent",
+      "capability": "spatial and geometric reconstruction",
+      "adapter_status": "blocked_on_vision",
+      "metric": "geometry_score",
+      "release_threshold": null,
+      "scaffold_dependency": "very_high"
+    }
+  ]
+}
