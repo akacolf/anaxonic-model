@@ -124,6 +124,11 @@ def main() -> None:
     parser.add_argument("--memory-data")
     parser.add_argument("--no-memory", action="store_true")
     parser.add_argument("--memory-only", action="store_true")
+    parser.add_argument(
+        "--raw-generation",
+        action="store_true",
+        help="Bypass built-in responses and retrieval so only the checkpoint answers.",
+    )
     args = parser.parse_args()
 
     cases = load_cases(args.eval_data)
@@ -143,6 +148,7 @@ def main() -> None:
             generate_unknown=not args.memory_only,
             top_p=args.top_p,
             repetition_penalty=args.repetition_penalty,
+            use_routing=not args.raw_generation,
         )
 
     report = evaluate_cases(cases, responder)

@@ -51,8 +51,9 @@ def sample(
     generate_unknown: bool = True,
     top_p: float | None = 0.9,
     repetition_penalty: float = 1.08,
+    use_routing: bool = True,
 ) -> str:
-    if chat:
+    if chat and use_routing:
         built_in = built_in_response(prompt)
         if built_in is not None:
             return built_in
@@ -85,7 +86,7 @@ def sample(
     output = tokenizer.decode(output_ids[0].tolist())
     if chat:
         response = trim_chat_response(output[len(prompt) :])
-        if response_is_low_quality(response):
+        if use_routing and response_is_low_quality(response):
             return LOW_CONFIDENCE_RESPONSE
         return response
     return output
@@ -104,6 +105,11 @@ def main() -> None:
     parser.add_argument("--system")
     parser.add_argument("--memory-data", default=DEFAULT_RESPONSE_DATA)
     parser.add_argument("--no-memory", action="store_true")
+    parser.add_argument(
+        "--raw-generation",
+        action="store_true",
+        help="Bypass built-in responses and memory retrieval before sampling.",
+    )
     parser.add_argument(
         "--memory-only",
         action="store_false",
@@ -125,6 +131,7 @@ def main() -> None:
             args.generate_unknown,
             args.top_p,
             args.repetition_penalty,
+            not args.raw_generation,
         )
     )
 

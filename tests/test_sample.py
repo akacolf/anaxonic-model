@@ -1,7 +1,11 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+import torch
+
+from anaxonic.tokenizer import ByteTokenizer
 from anaxonic.sample import format_chat_prompt, trim_chat_response
 from anaxonic.sample import sample
 
@@ -51,6 +55,56 @@ class SampleTest(unittest.TestCase):
         )
 
         self.assertEqual(response, "The answer is 4.")
+
+    def test_raw_generation_bypasses_routing_and_quality_fallback(self):
+        tokenizer = ByteTokenizer()
+
+        class FakeModel:
+            def __init__(self, config):
+                self.config = config
+
+            def to(self, device):
+                return self
+
+            def eval(self):
+                return None
+
+            def generate(self, input_ids, *args, **kwargs):
+                response_ids = tokenizer.encode("x\n")
+                return torch.tensor([input_ids[0].tolist() + response_ids], dtype=torch.long)
+
+        checkpoint = {
+            "config": {
+                "model": {
+                    "vocab_size": 256,
+                    "context_length": 256,
+                    "n_layers": 1,
+                    "n_heads": 1,
+                    "d_model": 16,
+                    "dropout": 0.0,
+                }
+            },
+            "model": {},
+        }
+
+        with (
+            patch("anaxonic.sample.choose_device", return_value=torch.device("cpu")),
+            patch("anaxonic.sample.load_checkpoint", return_value=checkpoint),
+            patch("anaxonic.sample.load_model_state", return_value=None),
+            patch("anaxonic.sample.AnaxonicModel", FakeModel),
+        ):
+            response = sample(
+                "checkpoint.pt",
+                "what is 2+2",
+                max_new_tokens=20,
+                temperature=0,
+                top_k=None,
+                chat=True,
+                memory_data=None,
+                use_routing=False,
+            )
+
+        self.assertEqual(response, "x")
 
 
 if __name__ == "__main__":
